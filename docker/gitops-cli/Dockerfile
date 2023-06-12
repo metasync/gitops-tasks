@@ -46,7 +46,7 @@ LABEL project=${project} \
     base_image_name=${base_image_repo}:${base_image_tag}
 
 RUN apk -U upgrade \
-    && apk --no-cache add curl yamllint jq yq skopeo \ 
+    && apk --no-cache add gcompat curl git make yamllint jq yq skopeo \ 
     && set -ex; \
       curl -LO https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/${TARGET_OS}/${TARGET_ARCH}/kubectl \
     && chmod +x kubectl \
@@ -79,5 +79,7 @@ RUN apk -U upgrade \
     \
     && chown -R 1001:0 ${GITOPS_HOME} \
     && chmod -R g=u ${GITOPS_HOME}
+
+ENV PATH="${PATH}:${KREW_ROOT}/bin"
 
 USER 1001
