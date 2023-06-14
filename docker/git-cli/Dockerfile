@@ -44,10 +44,11 @@ RUN apk -U upgrade \
     && apk --no-cache add git=${git_version} \ 
           gpg openssh patch jq yq gettext \
     \
-    && mkdir -p ${WORKSPACE_ROOT}/.ssh \
-    && touch ${WORKSPACE_ROOT}/.gitconfig \
-    && ln -s ${WORKSPACE_ROOT}/.gitconfig ${GITOPS_HOME}/.gitconfig \
-    && ln -s ${WORKSPACE_ROOT}/.ssh ${GITOPS_HOME}/.ssh \
+    && mkdir -p ${WORKSPACE_ROOT}/source \
+    && touch ${WORKSPACE_ROOT}/source/.gitconfig \
+    && ln -s ${WORKSPACE_ROOT}/source/.gitconfig ${GITOPS_HOME}/.gitconfig \
+    && mkdir -p ${WORKSPACE_ROOT}/ssh-directory \
+    && ln -s ${WORKSPACE_ROOT}/ssh-directory ${GITOPS_HOME}/.ssh \
     && chown -R 1001:0 ${WORKSPACE_ROOT} \
     && chmod -R g=u ${WORKSPACE_ROOT} \
     && chown -R 1001:0 ${GITOPS_HOME} \
