@@ -20,6 +20,7 @@ ARG KUBECTL_VERSION=1.27.2
 ARG KUSTOMIZE_VERSION=5.0.3
 ARG KUBELINTER_VERSION=0.6.4
 ARG OPENSHIFT_CLIENT_VERSION=4.10.28
+ARG ARGOCD_CLI_VERSION=2.7.4
 
 ENV GITOPS_HOME=/home/gitops
 ENV HOME=${GITOPS_HOME}
@@ -43,7 +44,13 @@ LABEL project=${project} \
     \
     base_image_repo=${base_image_repo} \
     base_image_tag=${base_image_tag} \
-    base_image_name=${base_image_repo}:${base_image_tag}
+    base_image_name=${base_image_repo}:${base_image_tag} \
+    \
+    kubectl_version=${KUBECTL_VERSION} \
+    kustomize_version=${KUSTOMIZE_VERSION} \
+    kube_linter_version=${KUBELINTER_VERSION} \
+    openshift_client_version=${OPENSHIFT_CLIENT_VERSION} \
+    argocd_cli_version=${ARGOCD_CLI_VERSION}
 
 RUN apk -U upgrade \
     && apk --no-cache add gcompat curl git make yamllint jq yq skopeo \ 
@@ -76,6 +83,11 @@ RUN apk -U upgrade \
       curl -fL https://mirror.openshift.com/pub/openshift-v4/clients/ocp/${OPENSHIFT_CLIENT_VERSION}/openshift-client-${TARGET_OS}-${OPENSHIFT_CLIENT_VERSION}.tar.gz | tar xz \
     && chmod +x oc \
     && mv oc /usr/local/bin/oc \
+    \
+    && set -ex; \
+      curl -sSL https://github.com/argoproj/argo-cd/releases/download/v${ARGOCD_CLI_VERSION}/argocd-linux-amd64 -o argocd \
+    && chmod +x argocd \
+    && mv argocd /usr/local/bin/argocd \
     \
     && chown -R 1001:0 ${GITOPS_HOME} \
     && chmod -R g=u ${GITOPS_HOME}
