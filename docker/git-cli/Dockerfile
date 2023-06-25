@@ -48,8 +48,8 @@ RUN apk -U upgrade \
     && touch ${WORKSPACE_ROOT}/source/.gitconfig \
     && ln -s ${WORKSPACE_ROOT}/source/.gitconfig ${GITOPS_HOME}/.gitconfig \
     && mkdir -p ${WORKSPACE_ROOT}/git-credentials \
-    && touch ${WORKSPACE_ROOT}/git-credentials/.git-credentials \
-    && ln -s ${WORKSPACE_ROOT}/git-credentials/.git-credentials ${GITOPS_HOME}/.git-credentials \
+    && touch ${WORKSPACE_ROOT}/git-credentials/git-credentials \
+    && ln -s ${WORKSPACE_ROOT}/git-credentials/git-credentials ${GITOPS_HOME}/.git-credentials \
     && mkdir -p ${WORKSPACE_ROOT}/ssh-directory \
     && ln -s ${WORKSPACE_ROOT}/ssh-directory ${GITOPS_HOME}/.ssh \
     && chown -R 1001:0 ${WORKSPACE_ROOT} \
