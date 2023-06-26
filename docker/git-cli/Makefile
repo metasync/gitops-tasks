@@ -14,6 +14,8 @@ build:
 		--build-arg base_image_repo=$(BASE_IMAGE_REPO) \
 		--build-arg base_image_tag=$(BASE_IMAGE_TAG) \
 		--build-arg git_version=$(GIT_RELEASE) \
+		--build-arg release_tag=$(RELEASE_TAG) \
+		--build-arg build_number=$(BUILD_NUMBER) \
 		&& ${CONTAINER_CLI} image tag $(IMAGE_NAME) $(IMAGE_REGISTRY_NAME)
 
 push:
