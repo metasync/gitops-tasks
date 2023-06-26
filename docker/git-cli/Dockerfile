@@ -6,6 +6,8 @@ ARG project
 ARG app
 ARG version
 ARG revision
+ARG release_tag=rel
+ARG build_number=0
 ARG source
 ARG build_context
 ARG dockerfile
@@ -25,6 +27,8 @@ LABEL project=${project} \
     app=${app} \
     version=${version} \
     revision=${revision} \
+    release_tag=${release_tag} \
+    build_number=${build_number} \
     source=${source} \
     build_context=${build_context} \
     dockerfile=${dockerfile} \
@@ -47,11 +51,6 @@ RUN apk -U upgrade \
     && mkdir -p ${WORKSPACE_ROOT}/source \
     && touch ${WORKSPACE_ROOT}/source/.gitconfig \
     && ln -s ${WORKSPACE_ROOT}/source/.gitconfig ${GITOPS_HOME}/.gitconfig \
-    && mkdir -p ${WORKSPACE_ROOT}/git-credentials \
-    && touch ${WORKSPACE_ROOT}/git-credentials/git-credentials \
-    && ln -s ${WORKSPACE_ROOT}/git-credentials/git-credentials ${GITOPS_HOME}/.git-credentials \
-    && mkdir -p ${WORKSPACE_ROOT}/ssh-directory \
-    && ln -s ${WORKSPACE_ROOT}/ssh-directory ${GITOPS_HOME}/.ssh \
     && chown -R 1001:0 ${WORKSPACE_ROOT} \
     && chmod -R g=u ${WORKSPACE_ROOT} \
     && chown -R 1001:0 ${GITOPS_HOME} \
