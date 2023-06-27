@@ -1,6 +1,7 @@
 ARG base_image_repo=alpine
-ARG base_image_tag=3.18.0
-FROM ${base_image_repo}:${base_image_tag}
+ARG base_image_tag
+ARG base_image_digest
+FROM ${base_image_repo}:${base_image_tag}@${base_image_digest}
 
 ARG project
 ARG app
@@ -15,6 +16,7 @@ ARG image_repo
 ARG image_tag
 ARG base_image_repo
 ARG base_image_tag
+ARG base_image_digest
 ARG git_version
 
 ENV WORKSPACE_ROOT=/workspace
@@ -41,6 +43,7 @@ LABEL project=${project} \
     base_image_repo=${base_image_repo} \
     base_image_tag=${base_image_tag} \
     base_image_name=${base_image_repo}:${base_image_tag} \
+    base_image_digest=${base_image_digest} \
     \
     git_version=${git_version}
 

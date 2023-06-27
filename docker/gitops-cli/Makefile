@@ -13,13 +13,18 @@ build:
 		--build-arg image_tag=$(IMAGE_TAG) \
 		--build-arg base_image_repo=$(BASE_IMAGE_REPO) \
 		--build-arg base_image_tag=$(BASE_IMAGE_TAG) \
+		--build-arg base_image_digest=$(BASE_IMAGE_DIGEST) \
+		--build-arg release_tag=$(RELEASE_TAG) \
+		--build-arg build_number=$(BUILD_NUMBER) \
+		&& ${CONTAINER_CLI} image tag $(IMAGE_NAME) $(IMAGE_REGISTRY_NAME)
 
 push:
-	@${CONTAINER_CLI} push $(IMAGE_NAME)
+	@${CONTAINER_CLI} push $(IMAGE_REGISTRY_NAME)
 
 run:
 	@${CONTAINER_CLI} run --rm -it \
 		-v ${HOME}/.ssh:${GITOPS_HOME}/.ssh \
+		-v ${HOME}/.kube:${GITOPS_HOME}/.kube \
 		${IMAGE_NAME}
 
 prune:

@@ -1,11 +1,14 @@
 ARG base_image_repo=alpine
-ARG base_image_tag=3.18.0
-FROM ${base_image_repo}:${base_image_tag}
+ARG base_image_tag
+ARG base_image_digest
+FROM ${base_image_repo}:${base_image_tag}@${base_image_digest}
 
 ARG project
 ARG app
 ARG version
 ARG revision
+ARG release_tag=rel
+ARG build_number=0
 ARG source
 ARG build_context
 ARG dockerfile
@@ -13,6 +16,7 @@ ARG image_repo
 ARG image_tag
 ARG base_image_repo
 ARG base_image_tag
+ARG base_image_digest
 
 ARG TARGET_OS=linux
 ARG TARGET_ARCH=amd64
@@ -33,6 +37,8 @@ LABEL project=${project} \
     app=${app} \
     version=${version} \
     revision=${revision} \
+    release_tag=${release_tag} \
+    build_number=${build_number} \
     source=${source} \
     build_context=${build_context} \
     dockerfile=${dockerfile} \
@@ -45,6 +51,7 @@ LABEL project=${project} \
     base_image_repo=${base_image_repo} \
     base_image_tag=${base_image_tag} \
     base_image_name=${base_image_repo}:${base_image_tag} \
+    base_image_digest=${base_image_digest} \
     \
     kubectl_version=${KUBECTL_VERSION} \
     kustomize_version=${KUSTOMIZE_VERSION} \
