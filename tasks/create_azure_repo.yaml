@@ -1,0 +1,83 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: create-azure-repo
+  namespace: tekton-ci
+spec:
+  params:
+    - name: project
+      description: GitOps project
+      type: string
+    - name: app
+      description: GitOps application
+      type: string
+    - name: image
+      description: Azure CLI image to run the task
+      type: string
+      default: quay.io/metasync/azure-devops-cli:2.49.0-rel.0
+    - name: verbose
+      description: Log the commands that are executed
+      type: string
+      default: "false"
+  results:
+    - name: new-repo
+      type: string
+      description: Indicate the Azure repo is a new or existing one
+  stepTemplate:
+    envFrom:
+      - configMapRef:
+          name: azure-devops-configmap
+      - secretRef:
+          name: azure-pat-credentials
+    env:
+      - name: VERBOSE
+        value: $(params.verbose)
+  steps:
+    - name: new-azure-project
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        AZURE_DEVOPS_ORGANIZATION=https://${AZURE_DEVOPS_HOST}/${AZURE_DEVOPS_COLLECTION}
+        az devops project show \
+          --project $(params.project) \
+          --org ${AZURE_DEVOPS_ORGANIZATION} \
+          -o table 2>/dev/null
+        if [ $? -eq 0 ] 
+        then 
+          echo "GitOps project $(params.project) has been created already." 
+        else 
+          az devops project create \
+            --name $(params.project) \
+            --org ${AZURE_DEVOPS_ORGANIZATION} \
+            -o table
+          echo "GitOps project $(params.project) is created successfully."
+        fi
+    - name: new-azure-repo
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        AZURE_DEVOPS_ORGANIZATION=https://${AZURE_DEVOPS_HOST}/${AZURE_DEVOPS_COLLECTION}
+        az repos show \
+          --repository $(params.app) \
+          --project $(params.project) \
+          --org ${AZURE_DEVOPS_ORGANIZATION} \
+          -o table 2>/dev/null
+        if [ $? -eq 0 ] 
+        then 
+          echo "GitOps repository $(params.project)/$(params.app) has been created already." 
+          echo -n "false" > $(results.new-repo.path)
+        else 
+          az repos create --name $(params.app) --project $(params.project) --org ${AZURE_DEVOPS_ORGANIZATION} -o table
+          echo "GitOps repository $(params.project)/$(params.app) is created successfully." 
+          echo -n "true" > $(results.new-repo.path)
+        fi

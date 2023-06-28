@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: azure-devops-configmap
+  namespace: tekton-ci
+data:
+  # Azure DevOps general config
+  AZURE_DEVOPS_HOST: dev.azure.com
+  AZURE_DEVOPS_COLLECTION: metasync
+
+  # CA bundle
+  # REQUESTS_CA_BUNDLE: ${HOME}/apps/ca-certificate.pem
+  #
+  # Azure DevOps security
+  # ATTENTION!
+  # Due to an known issue in Azure CLI, 
+  # AZURE_DEVOPS_CONTRIBUTORS does not work properly. 
+  # Please refer to the following link for details:
+  #     https://github.com/Azure/azure-devops-cli-extension/issues/1105
+
+  # Therefore, please add any contirbutors to a given Azure repo
+  # via Azure DevOps portal and keep option below commented out.
+  # AZURE_DEVOPS_CONTRIBUTORS="member1 member2"
+  
+  # Azure Repo branch policies
+  # - For base folder review
+  AZURE_DEVOPS_REPO_BASE_REVIEWERS: "user1@email.com;user2@email.com"
+  AZURE_DEVOPS_BASE_REVIEW_PATH_FILTER: /base
+  # - For overlays folder review
+  AZURE_DEVOPS_REPO_OVERLAYS_REVIEWERS: "user1@email.com;user2@email.com"
+  AZURE_DEVOPS_OVERLAYS_REVIEW_PATH_FILTER: /overlays/qa,/overlays/prd
+
+  # Kustomize templates config
+  KUSTOMIZE_TEMPLATES_PROJECT: devops
+  KUSTOMIZE_TEMPLATES_NAME: kustomize_templates.k8s

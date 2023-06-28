@@ -1,0 +1,52 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: init-gitops-workspace
+  namespace: tekton-ci
+spec:
+  workspaces:
+    - name: source
+      description: A workspace that contains gitops deployment
+    # - name: ssh-directory
+    #   description: |
+    #     A workspace that contains .ssh diretory with private key, known_hosts, config, etc.
+    #     These will be copied to the user's home before any git commands are run.
+    #   optional: true
+  params:
+    - name: image
+      description: Git CLI image to run the task
+      type: string
+      default: quay.io/metasync/git-cli:2.40.1-rel.0
+    - name: verbose
+      description: Log the commands that are executed
+      type: string
+      default: "false"
+  stepTemplate:
+    envFrom:
+      - configMapRef:
+          name: azure-devops-configmap
+      - configMapRef:
+          name: git-configmap
+      - secretRef:
+          name: azure-pat-credentials
+    env:
+      - name: VERBOSE
+        value: $(params.verbose)
+  steps:
+    - name: init-workspace
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        # Set up git config
+        git config --global user.name "${GIT_USER_NAME}"
+        git config --global user.email "${GIT_USER_EMAIL}"
+        git config --global init.defaultBranch main
+        git config --global --add http.https://${AZURE_DEVOPS_HOST}/${AZURE_DEVOPS_COLLECTION}.extraHeader "AUTHORIZATION: Basic $(printf "%s"":${AZURE_DEVOPS_EXT_PAT}" | base64)"
+        [ "${GIT_SSL_VERIFY}" = false ] && git --global config http.sslVerify false
+        [ "${GIT_SSL_CA_INFO}" = "" ] || git config --global http.sslCAInfo ${GIT_SSL_CA_INFO}
+        echo "GitOps workspace is initialized successfully."

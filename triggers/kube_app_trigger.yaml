@@ -1,0 +1,21 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: kube-app-trigger
+  namespace: tekton-ci
+spec:
+  interceptors:
+    - ref: 
+        name: "cel"
+      params:
+        - name: "filter"
+          value: header.match('X-TektonCI-Event', 'kube-app')
+  bindings:
+    - name: project
+      value: $(body.project)
+    - name: app
+      value: $(body.app)
+    - name: env
+      value: $(body.env)
+  template:
+    ref: kube-app-trigger-template

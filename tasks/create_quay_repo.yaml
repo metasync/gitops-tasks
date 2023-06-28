@@ -1,0 +1,108 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: create-quay-repo
+  namespace: tekton-ci
+spec:
+  params:
+    - name: project
+      description: Quay project for GitOps
+      type: string
+    - name: app
+      description: Quay application for GitOps
+      type: string
+    - name: org
+      description: Quay organization for GitOps
+      type: string
+    - name: visibility
+      description: Visibility which the repository will start with
+      type: string
+    - name: image
+      description: GitOps CLI image to run the task
+      type: string
+      default: quay.io/metasync/gitops-cli:0.1.2-rel.0
+    - name: verbose
+      description: Log the commands that are executed
+      type: string
+      default: "false"
+  stepTemplate:
+    envFrom:
+      - configMapRef:
+          name: gitops-configmap
+      - secretRef:
+          name: quay-token-credentials
+    env:
+      - name: VERBOSE
+        value: $(params.verbose)
+  steps:
+    - name: new-quay-repo
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        if [ "${QUAY_SSL_VERIFY}" = "false" ] ; then
+          QUAY_CURL_OPTS="-k"
+        else
+          QUAY_CURL_OPTS=""
+        fi
+        
+        repo=$(params.project)_$(params.app)
+
+        http_code=$(curl -s ${QUAY_CURL_OPTS} \
+          -H "Authorization: Bearer ${QUAY_ACCESS_TOKEN}" \
+          -H 'Content-Type: application/json' \
+          -o /dev/null -w '%{http_code}\n' \
+          -X GET https://${QUAY_HOST}/api/v1/repository/$(params.org)/${repo})
+
+        if [ "${http_code}" = "404" ]
+        then
+          http_code=$(curl -s ${QUAY_CURL_OPTS} \
+            -H "Authorization: Bearer ${QUAY_ACCESS_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            -d "{\"namespace\":\"$(params.org)\", \"repository\":\"${repo}\", \"description\":\"GitOps configuration repository for ${repo}\", \"visibility\": \"$(params.visibility)\"}" \
+            -o /dev/null -w '%{http_code}\n' \
+            -X POST https://${QUAY_HOST}/api/v1/repository)
+          
+          if [ "${http_code}" = "201" ]
+          then
+            echo "Quay repository '$(params.org)/${repo}' is created successfully."
+          else
+            echo "Failed to created repository '$(params.org)/${repo}'"
+            exit 1
+          fi
+        elif [ "${http_code}" = "200" ]
+        then
+          echo "Quay repository '$(params.org)/${repo}' has been created already."
+        else
+          echo "Failed to check quay repository '$(params.org)/${repo}'."
+          exit 1
+        fi
+    - name: grant-robot-permissions
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        repo=$(params.project)_$(params.app)
+
+        http_code=$(curl ${QUAY_CURL_OPTS} -s -X PUT \
+          -H "Authorization: Bearer ${QUAY_ACCESS_TOKEN}" \
+          -H "Content-Type: application/json" \
+          -d "{\"role\":\"${QUAY_ROBOT_ROLE}\"}" \
+          -o /dev/null -w '%{http_code}\n' \
+          https://${QUAY_HOST}/api/v1/repository/$(params.org)/${repo}/permissions/user/$(params.org)+${QUAY_ROBOT_ACCOUNT})
+
+        if [ "${http_code}" = "200" ]
+        then
+          echo "Role '${QUAY_ROBOT_ROLE}' on repository '$(params.org)/${repo}' is granted to robot account '$(params.org)+${QUAY_ROBOT_ACCOUNT}' successfully."
+        else
+          echo "Failed to grant role '${QUAY_ROBOT_ROLE}' on repository '$(params.org)/${repo}' to robot account '$(params.org)+${QUAY_ROBOT_ACCOUNT}'."
+          exit 1
+        fi

@@ -1,0 +1,21 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: gitops-repo-trigger
+  namespace: tekton-ci
+spec:
+  interceptors:
+    - ref: 
+        name: "cel"
+      params:
+        - name: "filter"
+          value: header.match('X-TektonCI-Event', 'gitops-repo')
+  bindings:
+    - name: project
+      value: $(body.project)
+    - name: app
+      value: $(body.app)
+    - name: env
+      value: $(body.env)
+  template:
+    ref: gitops-repo-trigger-template

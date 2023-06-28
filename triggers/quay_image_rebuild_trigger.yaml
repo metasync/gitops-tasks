@@ -1,0 +1,19 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: quay-image-rebuild-trigger
+  namespace: tekton-ci
+spec:
+  interceptors:
+    - ref: 
+        name: "cel"
+      params:
+        - name: "filter"
+          value: header.match('X-TektonCI-Event', 'quay-image-rebuild')
+  bindings:
+    - name: repo
+      value: $(body.repo)
+    - name: org
+      value: $(body.org)
+  template:
+    ref: quay-image-rebuild-trigger-template

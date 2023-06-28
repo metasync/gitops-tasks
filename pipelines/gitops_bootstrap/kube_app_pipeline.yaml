@@ -1,0 +1,25 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: kube-app-pipeline
+  namespace: tekton-ci
+spec:
+  description: This pipeline bootstrap Kubernetes namespace for GitOps
+  params:
+    - name: project
+      type: string
+    - name: app
+      type: string
+    - name: env
+      type: string
+  tasks:
+    - name: create-kube-app
+      taskRef: 
+        name: create-kube-app
+      params:
+        - name: project
+          value: $(params.project)
+        - name: app
+          value: $(params.app)
+        - name: env
+          value: $(params.env)

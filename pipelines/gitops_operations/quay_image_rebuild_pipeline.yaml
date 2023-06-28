@@ -1,0 +1,98 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: quay-image-rebuild-pipeline
+  namespace: tekton-ci
+spec:
+  description: |
+    This pipeline rebuild a Docker image with Kaniko and
+    pushes it to the image registry
+  params:
+    - name: repo
+      type: string
+    - name: org
+      type: string
+  workspaces:
+    - name: shared-data
+    - name: git-credentials
+    - name: docker-registry-credentials
+    - name: base-images-info
+  tasks:
+    - name: fetch-image-labels
+      taskRef:
+        name: fetch-quay-image-labels
+      workspaces:
+        - name: base-images
+          workspace: base-images-info
+      params:
+        - name: repo
+          value: $(params.repo)
+        - name: org
+          value: $(params.org)
+    - name: init-github-workspace
+      runAfter: 
+        - fetch-image-labels
+      taskRef:
+        name: init-github-workspace
+      workspaces:
+        - name: source
+          workspace: shared-data
+        # - name: ssh-directory
+        #   workspace: azure-ssh-credentials
+    - name: clone-image-source
+      runAfter: 
+        - init-github-workspace
+      taskRef:
+        name: clone-quay-image-source
+      workspaces:
+        - name: source
+          workspace: shared-data
+        - name: git-credentials
+          workspace: git-credentials
+        # - name: ssh-directory
+        #   workspace: git-ssh-credentials
+      params:
+        - name: source-repo-url
+          value: $(tasks.fetch-image-labels.results.source-repo-url)
+        - name: version
+          value: $(tasks.fetch-image-labels.results.version)
+        - name: revision
+          value: $(tasks.fetch-image-labels.results.revision)
+        - name: subdirectory
+          value: src
+    - name: build-and-push
+      runAfter: 
+        - clone-image-source
+      taskRef:
+        name: kaniko
+      workspaces:
+        - name: source
+          workspace: shared-data
+        - name: dockerconfig
+          workspace: docker-registry-credentials
+      params:
+        - name: BUILDER_IMAGE
+          value: gcr.io/kaniko-project/executor:v1.11.0
+        - name: IMAGE
+          value: $(tasks.fetch-image-labels.results.image-registry-name)
+        - name: DOCKERFILE
+          value: ./src/$(tasks.fetch-image-labels.results.dockerfile)
+        - name: CONTEXT
+          value: ./src/$(tasks.fetch-image-labels.results.build-context)
+        - name: EXTRA_ARGS
+          value: 
+            - --build-arg=project=$(tasks.fetch-image-labels.results.project)
+            - --build-arg=app=$(tasks.fetch-image-labels.results.app)
+            - --build-arg=version=$(tasks.fetch-image-labels.results.version)
+            - --build-arg=revision=$(tasks.fetch-image-labels.results.revision)
+            - --build-arg=release_tag=$(tasks.fetch-image-labels.results.release-tag)
+            - --build-arg=build_number=$(tasks.fetch-image-labels.results.next-build-number)
+            - --build-arg=build_context=$(tasks.fetch-image-labels.results.build-context)
+            - --build-arg=dockerfile=$(tasks.fetch-image-labels.results.dockerfile)
+            - --build-arg=source=$(tasks.fetch-image-labels.results.source-repo-url)
+            - --build-arg=image_repo=$(tasks.fetch-image-labels.results.image-repo)
+            - --build-arg=image_tag=$(tasks.fetch-image-labels.results.image-tag)
+            - --build-arg=base_image_repo=$(tasks.fetch-image-labels.results.latest-base-image-repo)
+            - --build-arg=base_image_tag=$(tasks.fetch-image-labels.results.latest-base-image-tag)
+            - --build-arg=base_image_digest=$(tasks.fetch-image-labels.results.latest-base-image-digest)
+            # - $(tasks.fetch-quay-image-labels.results.extra-args[*])

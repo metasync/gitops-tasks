@@ -1,0 +1,79 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: clone-quay-image-source
+  namespace: tekton-ci
+spec: 
+  workspaces:
+    - name: source
+      description: A workspace that contains gitops deployment
+    - name: git-credentials
+      description: A workspace that contains git credentials
+      optional: true
+    - name: ssh-directory
+      description: A workspace that contains ssh credentials
+      optional: true
+  params:
+    - name: source-repo-url
+      description: Source repository URL
+      type: string
+    - name: version
+      description: Source version
+      type: string
+    - name: revision
+      description: Source revision
+      type: string
+    - name: subdirectory
+      description: Subdirectory where the source should be checked into
+      type: string
+    - name: image
+      description: Git CLI image to run the task
+      type: string
+      default: quay.io/metasync/git-cli:2.40.1-rel.0
+    - name: verbose
+      description: Log the commands that are executed
+      type: string
+      default: "false"
+  stepTemplate:
+    envFrom:
+      - configMapRef:
+          name: azure-devops-configmap
+      - secretRef:
+          name: azure-pat-credentials
+    env:
+      - name: VERBOSE
+        value: $(params.verbose)
+      - name: workspace_ssh_directory_bound
+        value: $(workspaces.ssh-directory.bound)
+      - name: workspace_git_credentials_bound
+        value: $(workspaces.git-credentials.bound)
+  steps:
+    - name: clone-image-source
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        if [ "${workspace_git_credentials_bound}" = "true" ]
+        then
+          cp $(workspaces.git-credentials.path)/git-credentials ~/.git-credentials
+        fi
+
+        if [ "${workspace_ssh_directory_bound}" = "true" ]
+        then
+          cp -R $(workspaces.ssh-directory.path) ~/.ssh
+        fi
+
+        git clone $(params.source-repo-url) $(workspaces.source.path)/$(params.subdirectory)
+        
+        if [ $? -eq 0 ]
+        then
+          ls -lrt $(workspaces.source.path)/$(params.subdirectory)
+          echo "Source is cloned from $(params.source-repo-url)."
+        else
+          echo "Failed to clone source from $(params.source-repo-url)"
+          exit 1
+        fi

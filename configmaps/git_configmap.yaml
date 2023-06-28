@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: git-configmap
+  namespace: tekton-ci
+data:
+  # Git config
+  GIT_USER_NAME: "Tekton CI"
+  GIT_USER_EMAIL: tekton_ci@tekton.dev
+  # GIT_SSL_VERIFY=false
+  # GIT_SSL_CA_INFO: ${HOME}/apps/ca-bundle.crt

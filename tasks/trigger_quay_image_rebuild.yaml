@@ -1,0 +1,56 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: trigger-quay-image-rebuild
+  namespace: tekton-ci
+spec:
+  params:
+    - name: repo
+      description: Quay image repository url
+      type: string
+    - name: org
+      description: Quay organization where the image repository belongs to
+      type: string
+    - name: image
+      description: GitOps CLI image to run the task
+      type: string
+      default: quay.io/metasync/gitops-cli:0.1.2-rel.0
+    - name: verbose
+      description: Log the commands that are executed
+      type: string
+      default: "false"
+  stepTemplate:
+    envFrom:
+      - configMapRef:
+          name: gitops-configmap
+      - secretRef:
+          name: quay-token-credentials
+    env:
+      - name: VERBOSE
+        value: $(params.verbose)
+  steps:
+    - name: send-image-rebuild-request
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        http_code=$(curl -s \
+          -H "Content-Type: application/json" \
+          -H "X-TektonCI-Event: quay-image-rebuild" \
+          -o result.json -w '%{http_code}\n' \
+          -d "{\"repo\":\"hello-world\",\"org\":\"metasync\"}" \
+          -X POST ${TEKTON_CI_SERVER})
+
+        if [ "${http_code}" = "202" ]
+        then
+          echo "Rebuild for image '$(params.org)/$(params.repo)' is triggered successfully:"
+          cat result.json | jq
+        else
+          echo "Failed to trigger rebuild for image '$(params.org)/$(params.repo)': "
+          cat result.json | jq
+          exit 1
+        fi

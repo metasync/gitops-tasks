@@ -1,0 +1,23 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: quay-repo-trigger
+  namespace: tekton-ci
+spec:
+  interceptors:
+    - ref: 
+        name: "cel"
+      params:
+        - name: "filter"
+          value: header.match('X-TektonCI-Event', 'quay-repo')
+  bindings:
+    - name: project
+      value: $(body.project)
+    - name: app
+      value: $(body.app)
+    - name: org
+      value: $(body.org)
+    - name: visibility
+      value: $(body.visibility)
+  template:
+    ref: quay-repo-trigger-template

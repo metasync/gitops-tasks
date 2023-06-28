@@ -1,0 +1,23 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: argocd-app-trigger
+  namespace: tekton-ci
+spec:
+  interceptors:
+    - ref: 
+        name: "cel"
+      params:
+        - name: "filter"
+          value: header.match('X-TektonCI-Event', 'argocd-app')
+  bindings:
+    - name: project
+      value: $(body.project)
+    - name: app
+      value: $(body.app)
+    - name: env
+      value: $(body.env)
+    - name: sync-after-create
+      value: $(body.sync_after_create)
+  template:
+    ref: argocd-app-trigger-template

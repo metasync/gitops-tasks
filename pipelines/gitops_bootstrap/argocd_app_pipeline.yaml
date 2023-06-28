@@ -1,0 +1,84 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: argocd-app-pipeline
+  namespace: tekton-ci
+spec:
+  description: |
+    This pipeline bootstrap ArgoCD application to
+    manage GitOps deployment
+  params:
+    - name: project
+      type: string
+    - name: app
+      type: string
+    - name: env
+      type: string
+    - name: sync-after-create
+      type: string
+      default: "true"
+  workspaces:
+    - name: shared-data
+    # - name: azure-ssh-credentials
+  tasks:
+    - name: init-gitops-workspace
+      taskRef:
+        name: init-gitops-workspace
+      workspaces:
+        - name: source
+          workspace: shared-data
+        # - name: ssh-directory
+        #   workspace: azure-ssh-credentials
+    - name: clone-gitops-deployment
+      runAfter: 
+        - init-gitops-workspace
+      taskRef:
+        name: clone-gitops-deployment
+      workspaces:
+        - name: source
+          workspace: shared-data
+        # - name: ssh-directory
+        #   workspace: azure-ssh-credentials
+      params:
+        - name: project
+          value: $(params.project)
+        - name: app
+          value: $(params.app)
+        - name: env
+          value: $(params.env)
+    - name: create-argocd-app
+      runAfter: 
+        - clone-gitops-deployment
+      taskRef:
+        name: create-argocd-app
+      workspaces:
+        - name: source
+          workspace: shared-data
+        # - name: ssh-directory
+        #   workspace: azure-ssh-credentials
+      params:
+        - name: project
+          value: $(params.project)
+        - name: app
+          value: $(params.app)
+        - name: env
+          value: $(params.env)
+    - name: sync-argocd-app
+      runAfter: 
+        - create-argocd-app
+      when:
+        - input: $(params.sync-after-create)
+          operator: in
+          values: ["true"]
+        - input: $(tasks.create-argocd-app.results.created)
+          operator: in
+          values: ["true"]
+      taskRef:
+        name: sync-argocd-app
+      params:
+        - name: project
+          value: $(params.project)
+        - name: app
+          value: $(params.app)
+        - name: env
+          value: $(params.env)

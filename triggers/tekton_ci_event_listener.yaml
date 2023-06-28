@@ -1,0 +1,17 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: EventListener
+metadata:
+  name: tekton-ci-eventlistener
+  namespace: tekton-ci
+spec:
+  serviceAccountName: tekton-ci-sa
+  triggers:
+    # - triggerRef: tekton-ci-dev-trigger
+    # - triggerRef: tekton-ci-qa-trigger
+    # - triggerRef: tekton-ci-prd-trigger
+    - triggerRef: gitops-repo-trigger
+    - triggerRef: quay-repo-trigger
+    - triggerRef: kube-app-trigger
+    - triggerRef: argocd-app-trigger
+    - triggerRef: quay-image-check-trigger
+    - triggerRef: quay-image-rebuild-trigger

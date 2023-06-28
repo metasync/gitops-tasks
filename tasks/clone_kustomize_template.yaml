@@ -1,0 +1,47 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: clone-kustomize-template
+  namespace: tekton-ci
+spec: 
+  workspaces:
+    - name: source
+      description: A workspace that contains gitops deployment
+  params:
+    - name: image
+      description: Git CLI image to run the task
+      type: string
+      default: quay.io/metasync/git-cli:2.40.1-rel.0
+    - name: verbose
+      description: Log the commands that are executed
+      type: string
+      default: "false"
+  stepTemplate:
+    envFrom:
+      - configMapRef:
+          name: azure-devops-configmap
+      - secretRef:
+          name: azure-pat-credentials
+    env:
+      - name: VERBOSE
+        value: $(params.verbose)
+  steps:
+    - name: fetch-kustomize-template
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        KUSTOMIZE_TEMPLATES_REPO=https://${AZURE_DEVOPS_HOST}/${AZURE_DEVOPS_COLLECTION}/${KUSTOMIZE_TEMPLATES_PROJECT}/_git/${KUSTOMIZE_TEMPLATES_NAME}
+
+        git clone ${KUSTOMIZE_TEMPLATES_REPO} $(workspaces.source.path)/${KUSTOMIZE_TEMPLATES_NAME}
+        if [ $? -eq 0 ]
+        then
+          echo "Kustomize templates is cloned from ${KUSTOMIZE_TEMPLATES_REPO}."
+        else
+          echo "Failed to clone Kustomize templates from ${KUSTOMIZE_TEMPLATES_REPO}"
+          exit 1
+        fi

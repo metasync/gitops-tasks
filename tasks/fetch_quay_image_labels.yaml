@@ -1,0 +1,215 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: fetch-quay-image-labels
+  namespace: tekton-ci
+spec:
+  workspaces:
+    - name: base-images
+      description: A workspace that contains base images info
+  params:
+    - name: repo
+      description: Quay image repository url
+      type: string
+    - name: org
+      description: Quay organization where the image repository belongs to
+      type: string
+    - name: image
+      description: GitOps CLI image to run the task
+      type: string
+      default: quay.io/metasync/gitops-cli:0.1.2-rel.0
+    - name: verbose
+      description: Log the commands that are executed
+      type: string
+      default: "false"
+  results: 
+    - name: project
+      type: string
+      description: project name
+    - name: app
+      type: string
+      description: application name
+    - name: version
+      type: string
+      description: version
+    - name: revision
+      type: string
+      description: revision
+    - name: release-tag
+      type: string
+      description: release tag
+    - name: build-number
+      type: string
+      description: build number
+    - name: build-context
+      type: string
+      description: build context
+    - name: dockerfile
+      type: string
+      description: dockerfile
+    - name: source-repo-url
+      type: string
+      description: source repository url
+    - name: image-repo
+      type: string
+      description: image repository
+    - name: image-tag
+      type: string
+      description: image tag
+    - name: base-image-repo
+      type: string
+      description: base image repository
+    - name: base-image-tag
+      type: string
+      description: base image tag
+    - name: base-image-digest
+      type: string
+      description: base image digest
+    - name: latest-base-image-repo
+      type: string
+      description: latest base image repository
+    - name: latest-base-image-tag
+      type: string
+      description: latest base image tag
+    - name: latest-base-image-digest
+      type: string
+      description: latest base image digest
+    - name: next-build-number
+      type: string
+      description: next build number
+    - name: image-registry-name
+      type: string
+      description: image registry name
+  stepTemplate:
+    envFrom:
+      - configMapRef:
+          name: gitops-configmap
+      - secretRef:
+          name: quay-token-credentials
+    env:
+      - name: VERBOSE
+        value: $(params.verbose)
+  steps:
+    - name: check-base-image-updates
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        http_code=$(curl -s ${QUAY_CURL_OPTS} \
+          -H "Authorization: Bearer ${QUAY_ACCESS_TOKEN}" \
+          -H "Content-Type: application/json" \
+          -d "limit=100" \
+          -d "page=1" \
+          -d "onlyActiveTags=true" \
+          -o result.json -w '%{http_code}\n' \
+          -G -X GET https://${QUAY_HOST}/api/v1/repository/$(params.org)/$(params.repo)/tag/)
+
+        if [ "${http_code}" != "200" ]
+        then
+          echo "Failed to query tag info for image '$(params.org)/$(params.repo)': "
+          cat result.json | jq
+          exit 1
+        fi
+
+        manifest_digest=$(cat result.json | jq --raw-output .tags[0].manifest_digest)
+
+        cat $manifest_digest
+
+        http_code=$(curl -s ${QUAY_CURL_OPTS} \
+          -H "Authorization: Bearer ${QUAY_ACCESS_TOKEN}" \
+          -H "Content-Type: application/json" \
+          -o result.json -w '%{http_code}\n' \
+          -X GET https://${QUAY_HOST}/api/v1/repository/$(params.org)/$(params.repo)/manifest/${manifest_digest}/labels)
+        
+        if [ "${http_code}" != "200" ]
+        then
+          echo "Failed to query tag info for image '$(params.org)/$(params.repo)': "
+          cat result.json | jq
+          exit 1
+        fi
+
+        labels=$(cat result.json | jq 'reduce .labels[] as $i ({}; .[$i.key] = $i.value)')
+
+        echo "Labels for quay image: '$(params.org)/$(params.repo)'"
+        echo
+        echo -n ${labels} | jq
+        echo
+
+        project=$(echo -n ${labels} | jq --raw-output .project)
+        app=$(echo -n ${labels} | jq --raw-output .app)
+        version=$(echo -n ${labels} | jq --raw-output .version)
+        revision=$(echo -n ${labels} | jq --raw-output .revision)
+        
+        release_tag=$(echo -n ${labels} | jq --raw-output .release_tag)
+        build_number=$(echo -n ${labels} | jq --raw-output .build_number)
+        build_context=$(echo -n ${labels} | jq --raw-output .build_context)
+        dockerfile=$(echo -n ${labels} | jq --raw-output .dockerfile)
+        source_repo_url=$(echo -n ${labels} | jq --raw-output .source)
+
+        image_repo=$(echo -n ${labels} | jq --raw-output .image_repo)
+        image_tag=$(echo -n ${labels} | jq --raw-output .image_tag)
+
+        base_image_repo=$(echo -n ${labels} | jq --raw-output .base_image_repo)
+        base_image_tag=$(echo -n ${labels} | jq --raw-output .base_image_tag)
+        base_image_digest=$(echo -n ${labels} | jq --raw-output .base_image_digest)
+
+        latest_base_image_repo=$(cat $(workspaces.base-images.path)/latest.json | jq --raw-output ".${base_image_repo}.repo")
+        latest_base_image_tag=$(cat $(workspaces.base-images.path)/latest.json | jq --raw-output ".${base_image_repo}.tag")
+        latest_base_image_digest=$(cat $(workspaces.base-images.path)/latest.json | jq --raw-output ".${base_image_repo}.digest")
+
+        next_build_number="$(($build_number+1))"
+        image_registry_name=${image_repo}:${image_tag}-${release_tag}.${next_build_number}
+
+        echo "Key metadata to rebuild quay image: '$(params.org)/$(params.repo)'"
+        echo 
+        echo "project: ${project}"
+        echo "app: ${app}"
+        echo "version: ${version}"
+        echo "revision: ${revision}"
+        echo "build context: ${build_context}"
+        echo "dockerfile: ${dockerfile}"
+        echo "release_tag: ${release_tag}"
+        echo "build_number: ${build_number}"
+        echo "source_repo_url: ${source_repo_url}"
+        echo
+        echo "image_repo: ${image_repo}"
+        echo "image_tag: ${image_tag}"
+        echo 
+        echo "base_image_repo: ${base_image_repo}"
+        echo "base_image_tag: ${base_image_tag}"
+        echo "base_image_digest: ${base_image_digest}"
+        echo 
+        echo "latest_base_image_repo: ${latest_base_image_repo}"
+        echo "latest_base_image_tag: ${latest_base_image_tag}"
+        echo "latest_base_image_digest: ${latest_base_image_digest}"
+        echo
+        echo "next_build_number: ${next_build_number}"
+        echo "image_registry_name: ${image_registry_name}"
+
+        echo -n ${project} > $(results.project.path)
+        echo -n ${app} > $(results.app.path)
+        echo -n ${version} > $(results.version.path)
+        echo -n ${revision} > $(results.revision.path)
+        echo -n ${release_tag} > $(results.release-tag.path)
+        echo -n ${build_number} > $(results.build-number.path)
+        echo -n ${build_context} > $(results.build-context.path)
+        echo -n ${dockerfile} > $(results.dockerfile.path)
+        echo -n ${source_repo_url} > $(results.source-repo-url.path)
+
+        echo -n ${image_repo} > $(results.image-repo.path)
+        echo -n ${image_tag} > $(results.image-tag.path)
+
+        echo -n ${base_image_repo} > $(results.base-image-repo.path)
+        echo -n ${base_image_tag} > $(results.base-image-tag.path)
+        echo -n ${base_image_digest} > $(results.base-image-digest.path)
+
+        echo -n ${latest_base_image_repo} > $(results.latest-base-image-repo.path)
+        echo -n ${latest_base_image_tag} > $(results.latest-base-image-tag.path)
+        echo -n ${latest_base_image_digest} > $(results.latest-base-image-digest.path)
+
+        echo -n ${next_build_number} > $(results.next-build-number.path)
+        echo -n ${image_registry_name} > $(results.image-registry-name.path)

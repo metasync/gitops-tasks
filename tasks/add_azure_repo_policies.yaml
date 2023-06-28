@@ -1,0 +1,122 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: add-azure-repo-policies
+  namespace: tekton-ci
+spec:
+  params:
+    - name: project
+      description: GitOps project
+      type: string
+    - name: app
+      description: GitOps application
+      type: string
+    - name: image
+      description: Azure CLI image to run the task
+      type: string
+      default: quay.io/metasync/azure-devops-cli:2.49.0-rel.0
+    - name: verbose
+      description: Log the commands that are executed
+      type: string
+      default: "false"
+  stepTemplate:
+    envFrom:
+      - configMapRef:
+          name: azure-devops-configmap
+      - secretRef:
+          name: azure-pat-credentials
+    env:
+      - name: VERBOSE
+        value: $(params.verbose)
+  steps:
+    - name: add-az-repo-policies
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        AZURE_DEVOPS_ORGANIZATION=https://${AZURE_DEVOPS_HOST}/${AZURE_DEVOPS_COLLECTION}
+
+        repo_id=$(az repos show \
+                    --repository $(params.app) \
+                    --project $(params.project) \
+                    --org ${AZURE_DEVOPS_ORGANIZATION} | \
+                    jq -r '.id')
+
+        echo "GitOps repo ID is: ${repo_id}"
+
+        # Add approver count policy
+        if (az repos policy list \
+              --repository-id ${repo_id} \
+              --branch main \
+              --project $(params.project) \
+              --org ${AZURE_DEVOPS_ORGANIZATION} \
+              -o table | \
+              grep -q "Minimum number of reviewers")
+        then
+          echo "Approver count policy has been created already."
+        else
+          az repos policy approver-count create \
+            --blocking true \
+            --branch main \
+            --enabled \
+            --creator-vote-counts false \
+            --minimum-approver-count 1 \
+            --allow-downvotes false \
+            --reset-on-source-push false \
+            --repository-id ${repo_id} \
+            --project $(params.project) \
+            --org ${AZURE_DEVOPS_ORGANIZATION} -o table
+          echo "Approver count policy is created successfully."
+        fi
+
+        # Add base required reviewer policy
+        if (az repos policy list \
+              --repository-id ${repo_id} \
+              --branch main \
+              --project $(params.project) \
+              --org ${AZURE_DEVOPS_ORGANIZATION} | \
+              jq -r 'map(. | select(.type.displayName=="Required reviewers"))'| \
+              grep -q "${AZURE_DEVOPS_BASE_REVIEW_PATH_FILTER}")
+        then
+          echo "BASE Required reviewer policy has been created already."
+        else
+          az repos policy required-reviewer create \
+            --blocking true \
+            --branch main \
+            --enabled \
+            --message "Added required reviewer for base folder" \
+            --repository-id ${repo_id} \
+            --required-reviewer-ids ${AZURE_DEVOPS_REPO_BASE_REVIEWERS} \
+            --path-filter ${AZURE_DEVOPS_BASE_REVIEW_PATH_FILTER} \
+            --project $(params.project) \
+            --org ${AZURE_DEVOPS_ORGANIZATION} -o table
+          echo "BASE required reviewer policy is created successfully."
+        fi
+
+        # Add overlays required reviewer policy
+        if (az repos policy list \
+              --repository-id ${repo_id} \
+              --branch main \
+              --project $(params.project) \
+              --org ${AZURE_DEVOPS_ORGANIZATION} | \
+              jq -r 'map(. | select(.type.displayName=="Required reviewers"))'| \
+              grep -q "${AZURE_DEVOPS_OVERLAYS_REVIEW_PATH_FILTER}")
+          then
+            echo "OVERLAYS required reviewer policy has been created already."
+          else
+            az repos policy required-reviewer create \
+              --blocking true \
+              --branch main \
+              --enabled \
+              --message "Added required reviewer for overlays folder" \
+              --repository-id ${repo_id} \
+              --required-reviewer-ids ${AZURE_DEVOPS_REPO_OVERLAYS_REVIEWERS} \
+              --path-filter ${AZURE_DEVOPS_OVERLAYS_REVIEW_PATH_FILTER} \
+              --project $(params.project) \
+              --org ${AZURE_DEVOPS_ORGANIZATION} -o table
+            echo "OVERLAYS required reviewer policy is created successfully."
+          fi

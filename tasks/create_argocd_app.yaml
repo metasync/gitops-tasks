@@ -1,0 +1,65 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: create-argocd-app
+  namespace: tekton-ci
+spec:
+  workspaces:
+    - name: source
+      description: A workspace that contains gitops deployment
+    # - name: ssh-directory
+    #   description: |
+    #     A workspace that contains .ssh diretory with private key, known_hosts, config, etc.
+    #     These will be copied to the user's home before any git commands are run.
+    #   optional: true
+  params:
+    - name: project
+      description: GitOps project
+      type: string
+    - name: app
+      description: GitOps application
+      type: string
+    - name: env
+      description: GitOps environment (dev, qa, prd, etc.)
+      type: string
+    - name: image
+      description: GitOps CLI image to run the task
+      type: string
+      default: quay.io/metasync/gitops-cli:0.1.2-rel.0
+    - name: verbose
+      description: Log the commands that are executed
+      type: string
+      default: "false"
+  results: 
+    - name: created
+      type: string
+      description: Indicate if the Argo CD app is created successfully
+  stepTemplate:
+    envFrom:
+      - configMapRef:
+          name: gitops-configmap
+    env:
+      - name: VERBOSE
+        value: $(params.verbose)
+  steps:
+    - name: update-gitops-deployment
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        cd $(workspaces.source.path)/$(params.project)/$(params.app)/argocd
+        make apply env=$(params.env)
+
+        if [ $? -eq 0 ] 
+        then
+          echo "Argo CD app for $(params.project)/$(params.app) is created successfully." 
+          echo -n "true" > $(results.created.path)
+        else 
+          echo "Failed to create Argo CD app for $(params.project)/$(params.app)." 
+          echo -n "false" > $(results.created.path)
+          exit 1
+        fi

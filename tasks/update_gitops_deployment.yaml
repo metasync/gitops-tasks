@@ -1,0 +1,70 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: update-gitops-deployment
+  namespace: tekton-ci
+spec:
+  workspaces:
+    - name: source
+      description: A workspace that contains gitops deployment
+    # - name: ssh-directory
+    #   description: |
+    #     A workspace that contains .ssh diretory with private key, known_hosts, config, etc.
+    #     These will be copied to the user's home before any git commands are run.
+    #   optional: true
+  params:
+    - name: project
+      description: GitOps project
+      type: string
+    - name: app
+      description: GitOps application
+      type: string
+    - name: env
+      description: GitOps environment (dev, qa, prd, etc.)
+      type: string
+    - name: image
+      description: Git CLI image to run the task
+      type: string
+      default: quay.io/metasync/git-cli:2.40.1-rel.0
+    - name: verbose
+      description: Log the commands that are executed
+      type: string
+      default: "false"
+  stepTemplate:
+    envFrom:
+      - configMapRef:
+          name: azure-devops-configmap
+      - secretRef:
+          name: azure-pat-credentials
+    env:
+      - name: VERBOSE
+        value: $(params.verbose)
+  steps:
+    - name: update-gitops-deployment
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        cd $(workspaces.source.path)
+
+        # Build deployments for given environments
+        build_script=$(workspaces.source.path)/${KUSTOMIZE_TEMPLATES_NAME}/bin/build.sh
+        chmod u+x,g+x ${build_script}
+        ${build_script} $(params.project):$(params.app) $(params.env)
+
+        # Update local git repo
+        cd $(params.project)/$(params.app)
+        git add *
+        git commit -m "Updated kustomization configuration."
+        git push origin develop
+        if [ $? -eq 0 ] 
+        then
+          echo "GitOps deployment for $(params.project)/$(params.app) is updated successfully." 
+        else 
+          echo "Failed to update GitOps deployment for $(params.project)/$(params.app)." 
+          exit 1
+        fi

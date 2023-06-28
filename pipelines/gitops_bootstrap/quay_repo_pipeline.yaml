@@ -1,0 +1,29 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: quay-repo-pipeline
+  namespace: tekton-ci
+spec:
+  description: This pipeline bootstrap Quay repository for GitOps
+  params:
+    - name: project
+      type: string
+    - name: app
+      type: string
+    - name: org
+      type: string
+    - name: visibility
+      type: string
+  tasks:
+    - name: create-quay-repo
+      taskRef: 
+        name: create-quay-repo
+      params:
+        - name: project
+          value: $(params.project)
+        - name: app
+          value: $(params.app)
+        - name: org
+          value: $(params.org)
+        - name: visibility
+          value: $(params.visibility)

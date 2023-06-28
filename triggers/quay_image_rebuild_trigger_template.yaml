@@ -1,0 +1,45 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: quay-image-rebuild-trigger-template
+  namespace: tekton-ci
+spec:
+  params:
+    - name: repo
+      description: Quay image repository url
+    - name: org
+      description: Quay organization where the image repository belongs to
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: quay-image-rebuild-pipelinerun-
+        namespace: tekton-ci
+      spec:
+        serviceAccountName: tekton-ci-sa
+        pipelineRef:
+          name: quay-image-rebuild-pipeline
+        workspaces:
+          - name: shared-data
+            volumeClaimTemplate:
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 100Mi
+                    # storage: 1Gi
+          - name: git-credentials
+            secret:
+              secretName: github-credentials
+          - name: docker-registry-credentials
+            secret:
+              secretName: docker-registry-credentials
+          - name: base-images-info
+            configmap:
+              name: base-images-info-configmap
+        params:
+          - name: repo
+            value: $(tt.params.repo)
+          - name: org
+            value: $(tt.params.org)

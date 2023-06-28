@@ -1,0 +1,60 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: clone-gitops-deployment
+  namespace: tekton-ci
+spec:
+  workspaces:
+    - name: source
+      description: A workspace that contains gitops deployment
+    # - name: ssh-directory
+    #   description: |
+    #     A workspace that contains .ssh diretory with private key, known_hosts, config, etc.
+    #     These will be copied to the user's home before any git commands are run.
+    #   optional: true
+  params:
+    - name: project
+      description: GitOps project
+      type: string
+    - name: app
+      description: GitOps application
+      type: string
+    - name: env
+      description: GitOps environment (dev, qa, prd, etc.)
+      type: string
+    - name: image
+      description: Git CLI image to run the task
+      type: string
+      default: quay.io/metasync/git-cli:2.40.1-rel.0
+    - name: verbose
+      description: Log the commands that are executed
+      type: string
+      default: "false"
+  stepTemplate:
+    envFrom:
+      - configMapRef:
+          name: azure-devops-configmap
+      - secretRef:
+          name: azure-pat-credentials
+    env:
+      - name: VERBOSE
+        value: $(params.verbose)
+  steps:
+    - name: clone-gitops-deployment
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        cd $(workspaces.source.path)
+
+        # Clone gitops repo
+        mkdir -p $(params.project)/$(params.app)
+        git clone https://${AZURE_DEVOPS_HOST}/${AZURE_DEVOPS_COLLECTION}/$(params.project)/_git/$(params.app) $(params.project)/$(params.app)
+        cd $(params.project)/$(params.app)
+        git checkout develop
+        cd ..
+        echo "GitOps repo for $(params.project)/$(params.app) is cloned."

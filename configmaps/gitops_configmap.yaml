@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gitops-configmap
+  namespace: tekton-ci
+data:
+  # Quay config
+  QUAY_HOST: quay.io
+  # QUAY_SSL_VERIFY: false
+  # QUAY_SSL_CA_INFO: ${HOME}/apps/ca-bundle.crt
+  QUAY_ROBOT_ACCOUNT: devops_bot
+  QUAY_ROBOT_ROLE: write
+
+  # Kubernetes config
+  SECRET_SOURCE_NAMESPACE: default
+  SECRETS_TO_COPY: "secret1 secret2 secret3"
+
+  # To disable patches to Kubernetes GitOps config (default)
+  PATCHES_TO_APPLY: "0"
+  # To enable patches to Kubernetes GitOps config
+  # Simple example to patch config map:
+  # PATCHES_TO_APPLY: 2
+  # PATCHES_TO_APPLY1: configmap $env-$app-configmap -p '{"data": {"key1": "${env}", "key2": "${project}-${app}"}}'
+  # PATCHES_TO_APPLY2: configmap $env-test-configmap -p '{"data": {"key3": "${env}", "key4": "${project}-${app}"}}'
+  #
+  # Another example to patch service account: 
+  # PATCHES_TO_APPLY=1
+  # PATCHES_TO_APPLY1=serviceaccount pipeline -p '{"imagePullSecrets": [{"name": "scl-${env}-deployer-pull-secret"}]}'
+
+  # ArgoCD config
+  ARGOCD_SERVER: argocd
+  ARGOCD_NAMESPACE: argocd
+  ARGOCD_WAIT_TIMEOUT: "60" # second
+  ARGOCD_SSL_VERIFY: "false"
+
+  # Tekton CI config
+  TEKTON_CI_SERVER: "el-tekton-ci-eventlistener:8080"
+
+  KUBECTL_CMD: kubectl

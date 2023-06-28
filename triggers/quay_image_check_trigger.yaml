@@ -1,0 +1,21 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: quay-image-check-trigger
+  namespace: tekton-ci
+spec:
+  interceptors:
+    - ref: 
+        name: "cel"
+      params:
+        - name: "filter"
+          value: header.match('X-TektonCI-Event', 'quay-image-check')
+  bindings:
+    - name: repo
+      value: $(body.repo)
+    - name: org
+      value: $(body.org)
+    - name: check-only
+      value: $(body.check-only)
+  template:
+    ref: quay-image-check-trigger-template

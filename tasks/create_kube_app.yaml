@@ -1,0 +1,113 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: create-kube-app
+  namespace: tekton-ci
+spec:
+  params:
+    - name: project
+      description: Quay project for GitOps
+      type: string
+    - name: app
+      description: Quay application for GitOps
+      type: string
+    - name: env
+      description: GitOps environment (dev, qa, prd, etc.)
+      type: string
+    - name: image
+      description: GitOps CLI image to run the task
+      type: string
+      default: quay.io/metasync/gitops-cli:0.1.2-rel.0
+    - name: verbose
+      description: Log the commands that are executed
+      type: string
+      default: "false"
+  stepTemplate:
+    envFrom:
+      - configMapRef:
+          name: gitops-configmap
+    env:
+      - name: VERBOSE
+        value: $(params.verbose)
+  steps:
+    - name: new-kube-namespace
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        TARGET_NAMESPACE=$(params.env)-$(params.project)
+
+        if (${KUBECTL_CMD} get namespaces | \
+            grep -q ${TARGET_NAMESPACE})
+        then
+          echo "Namespace ${TARGET_NAMESPACE} has been created already."
+        else
+          ${KUBECTL_CMD} create namespace ${TARGET_NAMESPACE}
+          if [ $? -eq 0 ]
+          then
+            echo "Namespace ${TARGET_NAMESPACE} is created successfully."
+          else
+            echo "Failed to create namespace ${TARGET_NAMESPACE}."
+            exit 1
+          fi
+        fi
+    - name: copy-kube-secrets
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        if (! ${KUBECTL_CMD} get namespaces | \
+              grep -q ${SECRET_SOURCE_NAMESPACE})
+        then
+          echo "Source namespace ${SECRET_SOURCE_NAMESPACE} is NOT found."
+          exit 1
+        fi
+
+        TARGET_NAMESPACE=$(params.env)-$(params.project)
+
+        if (! ${KUBECTL_CMD} get namespaces |\
+              grep -q ${TARGET_NAMESPACE})
+        then
+          echo "Target namespace ${TARGET_NAMESPACE} is NOT found."
+          exit 1
+        fi
+
+        for s in $(echo ${SECRETS_TO_COPY}) ; do \
+          echo "Copying secret $s to ${TARGET_NAMESPACE} from ${SECRET_SOURCE_NAMESPACE} "
+          if (${KUBECTL_CMD} get secret -n ${SECRET_SOURCE_NAMESPACE} | grep -q "$s ")
+          then
+            ${KUBECTL_CMD} get secret $s -n ${SECRET_SOURCE_NAMESPACE} -o yaml | \
+            ${KUBECTL_CMD} neat | \
+            sed "s/namespace: ${SECRET_SOURCE_NAMESPACE}/namespace: ${TARGET_NAMESPACE}/g" | \
+            ${KUBECTL_CMD} apply -f - 
+
+            if [ $? -eq 0 ]
+            then
+              echo "Secret '$s' is copied to namespace ${TARGET_NAMESPACE} from namespace ${SECRET_SOURCE_NAMESPACE} successfully."
+            else
+              echo "Failed to copy secret '$s' to namespace ${TARGET_NAMESPACE} from namespace ${SECRET_SOURCE_NAMESPACE}."
+            fi
+          else
+            echo "Secret '$s' is NOT found in namespace ${SECRET_SOURCE_NAMESPACE}."
+          fi
+        done
+    - name: patch-kube-app
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        for i in $(seq 1 ${PATCHES_TO_APPLY}) ; do \
+          eval ${KUBECTL_CMD} -n ${params.env}-${params.project} patch $(printenv "PATCHES_TO_APPLY$$i" | envsubst); \
+        done

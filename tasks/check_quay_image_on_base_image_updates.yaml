@@ -1,0 +1,124 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: check-quay-image-on-base-image-updates
+  namespace: tekton-ci
+spec:
+  workspaces:
+    - name: base-images
+      description: A workspace that contains base images info
+  params:
+    - name: repo
+      description: Quay image repository url
+      type: string
+    - name: org
+      description: Quay organization where the image repository belongs to
+      type: string
+    - name: image
+      description: GitOps CLI image to run the task
+      type: string
+      default: quay.io/metasync/gitops-cli:0.1.2-rel.0
+    - name: verbose
+      description: Log the commands that are executed
+      type: string
+      default: "false"
+  results: 
+    - name: updates-available
+      type: string
+      description: Indicate if updates on the base image is available
+    - name: updates-at
+      type: string
+      description: Shows base image updates at image tag or digest
+  stepTemplate:
+    envFrom:
+      - configMapRef:
+          name: gitops-configmap
+      - secretRef:
+          name: quay-token-credentials
+    env:
+      - name: VERBOSE
+        value: $(params.verbose)
+  steps:
+    - name: check-base-image-updates
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        http_code=$(curl -s ${QUAY_CURL_OPTS} \
+          -H "Authorization: Bearer ${QUAY_ACCESS_TOKEN}" \
+          -H "Content-Type: application/json" \
+          -d "limit=100" \
+          -d "page=1" \
+          -d "onlyActiveTags=true" \
+          -o result.json -w '%{http_code}\n' \
+          -G -X GET https://${QUAY_HOST}/api/v1/repository/$(params.org)/$(params.repo)/tag/)
+
+        if [ "${http_code}" != "200" ]
+        then
+          echo "Failed to query tag info for image '$(params.org)/$(params.repo)': "
+          cat result.json | jq
+          exit 1
+        fi
+
+        cat result.json | jq
+
+        manifest_digest=$(cat result.json | jq --raw-output .tags[0].manifest_digest)
+        echo $manifest_digest
+
+        http_code=$(curl -s ${QUAY_CURL_OPTS} \
+          -H "Authorization: Bearer ${QUAY_ACCESS_TOKEN}" \
+          -H "Content-Type: application/json" \
+          -o result.json -w '%{http_code}\n' \
+          -X GET https://${QUAY_HOST}/api/v1/repository/$(params.org)/$(params.repo)/manifest/${manifest_digest}/labels)
+        
+        if [ "${http_code}" != "200" ]
+        then
+          echo "Failed to query tag info for image '$(params.org)/$(params.repo)': "
+          cat result.json | jq
+          exit 1
+        fi
+
+        labels=$(cat result.json | jq 'reduce .labels[] as $i ({}; .[$i.key] = $i.value)')
+        base_image_repo=$(echo -n ${labels} | jq --raw-output .base_image_repo)
+        base_image_tag=$(echo -n ${labels} | jq --raw-output .base_image_tag)
+        base_image_digest=$(echo -n ${labels} | jq --raw-output .base_image_digest)
+
+        latest_base_image_repo=$(cat $(workspaces.base-images.path)/latest.json | jq --raw-output ".${base_image_repo}.repo")
+        latest_base_image_tag=$(cat $(workspaces.base-images.path)/latest.json | jq --raw-output ".${base_image_repo}.tag")
+        latest_base_image_digest=$(cat $(workspaces.base-images.path)/latest.json | jq --raw-output ".${base_image_repo}.digest")
+
+        if [ "${base_image_tag}" != "${latest_base_image_tag}" ]
+        then
+          updates_available="true"
+          updates_at="tag"
+          echo "Detected tag change for base image - ${base_image_repo}:"
+          echo "--> Current tag: ${base_image_tag}"
+          echo "--> Latest tag:  ${latest_base_image_tag}"
+          echo 
+          echo "Image '$(params.org)/$(params.repo)' needs to update its base image:"
+          echo "--> Current base image: ${base_image_repo}:${base_image_tag}@${base_image_digest}"
+          echo "--> Latest base image:  ${latest_base_image_repo}:${latest_base_image_tag}@${latest_base_image_digest}"
+        elif [ "${base_image_digest}" != "${latest_base_image_digest}" ]
+        then
+          updates_available="true"
+          updates_at="digest"
+          echo "Detected digest change for base image - ${base_image_repo}:"
+          echo "--> Current digest: ${base_image_digest}"
+          echo "--> Latest digest:  ${latest_base_image_digest}"
+          echo
+          echo "Image '$(params.org)/$(params.repo)' needs to update its base image:"
+          echo "--> Current base image: ${base_image_repo}:${base_image_tag}@${base_image_digest}"
+          echo "--> Latest base image:  ${latest_base_image_repo}:${latest_base_image_tag}@${latest_base_image_digest}"
+        else
+          updates_available="false"
+          updates_at=""
+          echo "Image '$(params.org)/$(params.repo)' has up-to-date base image:"
+          echo "--> Current base image: ${base_image_repo}:${base_image_tag}@${base_image_digest}"
+        fi
+
+        echo -n ${updates_available} > $(results.updates-available.path)
+        echo -n ${updates_at} > $(results.updates-at.path)

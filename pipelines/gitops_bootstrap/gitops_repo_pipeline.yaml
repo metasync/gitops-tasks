@@ -1,0 +1,120 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: gitops-repo-pipeline
+  namespace: tekton-ci
+spec:
+  description: This pipeline bootstrap GitOps repository
+  params:
+    - name: project
+      type: string
+    - name: app
+      type: string
+    - name: env
+      type: string
+  workspaces:
+    - name: shared-data
+    # - name: azure-ssh-credentials
+  tasks:
+    - name: create-azure-repo
+      taskRef: 
+        name: create-azure-repo
+      params:
+        - name: project
+          value: $(params.project)
+        - name: app
+          value: $(params.app)
+    - name: add-azure-repo-policies
+      runAfter: 
+        - create-azure-repo
+      taskRef: 
+        name: add-azure-repo-policies
+      params:
+        - name: project
+          value: $(params.project)
+        - name: app
+          value: $(params.app)
+    - name: init-gitops-workspace
+      runAfter: 
+        - add-azure-repo-policies
+      taskRef:
+        name: init-gitops-workspace
+      workspaces:
+        - name: source
+          workspace: shared-data
+        # - name: ssh-directory
+        #   workspace: azure-ssh-credentials
+    - name: clone-kustomize-template
+      runAfter: 
+        - init-gitops-workspace
+      taskRef:
+        name: clone-kustomize-template
+      workspaces:
+        - name: source
+          workspace: shared-data
+        # - name: ssh-directory
+        #   workspace: azure-ssh-credentials
+    - name: create-gitops-deployment
+      runAfter: 
+        - clone-kustomize-template
+      when:
+        - input: $(tasks.create-azure-repo.results.new-repo)
+          operator: in
+          values: ["true"]
+      taskRef:
+        name: create-gitops-deployment
+      workspaces:
+        - name: source
+          workspace: shared-data
+        # - name: ssh-directory
+        #   workspace: azure-ssh-credentials
+      params:
+        - name: project
+          value: $(params.project)
+        - name: app
+          value: $(params.app)
+        - name: env
+          value: $(params.env)
+    - name: clone-gitops-deployment
+      runAfter: 
+        - clone-kustomize-template
+      when:
+        - input: $(tasks.create-azure-repo.results.new-repo)
+          operator: in
+          values: ["false"]
+      taskRef:
+        name: clone-gitops-deployment
+      workspaces:
+        - name: source
+          workspace: shared-data
+        # - name: ssh-directory
+        #   workspace: azure-ssh-credentials
+      params:
+        - name: project
+          value: $(params.project)
+        - name: app
+          value: $(params.app)
+        - name: env
+          value: $(params.env)
+    - name: update-gitops-deployment
+      runAfter: 
+        - clone-gitops-deployment
+      when:
+        - input: $(tasks.create-azure-repo.results.new-repo)
+          operator: in
+          values: ["false"]
+      taskRef:
+        name: update-gitops-deployment
+      workspaces:
+        - name: source
+          workspace: shared-data
+        # - name: ssh-directory
+        #   workspace: azure-ssh-credentials
+      params:
+        - name: project
+          value: $(params.project)
+        - name: app
+          value: $(params.app)
+        - name: env
+          value: $(params.env)
+

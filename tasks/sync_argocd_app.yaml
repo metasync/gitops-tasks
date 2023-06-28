@@ -1,0 +1,87 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: sync-argocd-app
+  namespace: tekton-ci
+spec:
+  params:
+    - name: project
+      description: GitOps project
+      type: string
+    - name: app
+      description: GitOps application
+      type: string
+    - name: env
+      description: GitOps environment (dev, qa, prd, etc.)
+      type: string
+    - name: revision
+      description: the revision to sync to
+      default: HEAD
+      type: string
+    - name: flags
+      default: ""
+      type: string
+    - name: image
+      description: GitOps CLI image to run the task
+      type: string
+      default: quay.io/metasync/gitops-cli:0.1.2-rel.0
+    - name: verbose
+      description: Log the commands that are executed
+      type: string
+      default: "false"
+  stepTemplate:
+    envFrom:
+      - configMapRef:
+          name: gitops-configmap
+      - secretRef:
+          name: argocd-credentials
+    env:
+      - name: VERBOSE
+        value: $(params.verbose)
+  steps:
+    - name: sync-argocd-app
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        if [ "${ARGOCD_SSL_VERIFY}" = "false" ] ; then
+          ARGOCD_INSECURE_OPTS="--insecure"
+        else
+          ARGOCD_INSECURE_OPTS=""
+        fi
+
+        if [ -z "${ARGOCD_AUTH_TOKEN}" ]
+        then
+          argocd login ${ARGOCD_SERVER} --username="${ARGOCD_USERNAME}" --password="${ARGOCD_PASSWORD}" --grpc-web ${ARGOCD_INSECURE_OPTS}
+        else
+          argocd login ${ARGOCD_SERVER} --auth-token="${ARGOCD_AUTH_TOKEN}" ${ARGOCD_INSECURE_OPTS}
+        fi
+        if [ $? -eq 0 ]; then
+          echo "Logged in Argo CD successfully."
+        else
+          echo "Failed to log in Argo CD."
+        fi
+
+        ARGOCD_APP_NAME=$(params.env)-$(params.project)-$(params.app)
+
+        argocd app sync ${ARGOCD_APP_NAME} --revision $(params.revision) --grpc-web ${ARGOCD_INSECURE_OPTS} $(params.flags)
+        if [ $? -eq 0 ]
+        then
+          echo "${ARGOCD_APP_NAME} is synced successfully."
+          echo "Checking healthness for ${ARGOCD_APP_NAME} ..."
+          argocd app wait ${ARGOCD_APP_NAME} --health --timeout ${ARGOCD_WAIT_TIMEOUT} --grpc-web ${ARGOCD_INSECURE_OPTS} $(params.flags)
+          if [ $? -eq 0 ]
+          then
+            echo "${ARGOCD_APP_NAME} now is up and healthy."
+          else
+            echo "Failed on heath check of ${ARGOCD_APP_NAME}."
+          fi
+        else
+          echo "Failed to sync ${ARGOCD_APP_NAME}."
+        fi
+
+        argocd logout ${ARGOCD_SERVER}

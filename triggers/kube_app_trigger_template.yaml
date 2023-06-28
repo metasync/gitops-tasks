@@ -1,0 +1,30 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: kube-app-trigger-template
+  namespace: tekton-ci
+spec:
+  params:
+    - name: project
+      description: GitOps project
+    - name: app
+      description: GitOps application
+    - name: env
+      description: GitOps environment (dev, qa, prd, etc)
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: kube-app-pipelinerun-
+        namespace: tekton-ci
+      spec:
+        serviceAccountName: tekton-ci-sa
+        pipelineRef:
+          name: kube-app-pipeline
+        params:
+          - name: project
+            value: $(tt.params.project)
+          - name: app
+            value: $(tt.params.app)
+          - name: env
+            value: $(tt.params.env)
