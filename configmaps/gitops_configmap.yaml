@@ -30,7 +30,7 @@ data:
   # ArgoCD config
   ARGOCD_SERVER: argocd
   ARGOCD_NAMESPACE: argocd
-  ARGOCD_WAIT_TIMEOUT: "60" # second
+  ARGOCD_WAIT_TIMEOUT: "180" # second
   ARGOCD_SSL_VERIFY: "false"
 
   # Tekton CI config
