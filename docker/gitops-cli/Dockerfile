@@ -33,31 +33,31 @@ ENV KREW_ROOT="${GITOPS_HOME}/.krew"
 
 WORKDIR ${GITOPS_HOME}
 
-LABEL project=${project} \
-    app=${app} \
-    version=${version} \
-    revision=${revision} \
-    release_tag=${release_tag} \
-    build_number=${build_number} \
-    source=${source} \
-    build_context=${build_context} \
-    dockerfile=${dockerfile} \
-    maintainer="Metasync" \
+LABEL tekton-ci.project=${project} \
+    tekton-ci.app=${app} \
+    tekton-ci.version=${version} \
+    tekton-ci.revision=${revision} \
+    tekton-ci.release_tag=${release_tag} \
+    tekton-ci.build_number=${build_number} \
+    tekton-ci.source=${source} \
+    tekton-ci.build_context=${build_context} \
+    tekton-ci.dockerfile=${dockerfile} \
+    tekton-ci.maintainer="Metasync" \
     \
-    image_repo=${image_repo} \
-    image_tag=${image_tag} \
-    image_name=${image_repo}:${image_tag} \
+    tekton-ci.image_repo=${image_repo} \
+    tekton-ci.image_tag=${image_tag} \
+    tekton-ci.image_name=${image_repo}:${image_tag} \
     \
-    base_image_repo=${base_image_repo} \
-    base_image_tag=${base_image_tag} \
-    base_image_name=${base_image_repo}:${base_image_tag} \
-    base_image_digest=${base_image_digest} \
+    tekton-ci.base_image_repo=${base_image_repo} \
+    tekton-ci.base_image_tag=${base_image_tag} \
+    tekton-ci.base_image_name=${base_image_repo}:${base_image_tag} \
+    tekton-ci.base_image_digest=${base_image_digest} \
     \
-    kubectl_version=${KUBECTL_VERSION} \
-    kustomize_version=${KUSTOMIZE_VERSION} \
-    kube_linter_version=${KUBELINTER_VERSION} \
-    openshift_client_version=${OPENSHIFT_CLIENT_VERSION} \
-    argocd_cli_version=${ARGOCD_CLI_VERSION}
+    tekton-ci.kubectl_version=${KUBECTL_VERSION} \
+    tekton-ci.kustomize_version=${KUSTOMIZE_VERSION} \
+    tekton-ci.kube_linter_version=${KUBELINTER_VERSION} \
+    tekton-ci.openshift_client_version=${OPENSHIFT_CLIENT_VERSION} \
+    tekton-ci.argocd_cli_version=${ARGOCD_CLI_VERSION}
 
 RUN apk -U upgrade \
     && apk --no-cache add gcompat curl git make yamllint jq yq skopeo \ 
