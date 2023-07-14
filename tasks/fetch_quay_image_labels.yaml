@@ -139,23 +139,23 @@ spec:
         echo -n ${labels} | jq
         echo
 
-        project=$(echo -n ${labels} | jq --raw-output .project)
-        app=$(echo -n ${labels} | jq --raw-output .app)
-        version=$(echo -n ${labels} | jq --raw-output .version)
+        project=$(echo -n ${labels} | jq --raw-output '."tekton-ci.project"')
+        app=$(echo -n ${labels} | jq --raw-output '."tekton-ci.app"')
+        version=$(echo -n ${labels} | jq --raw-output '."tekton-ci.version"')
         revision=$(echo -n ${labels} | jq --raw-output .revision)
         
-        release_tag=$(echo -n ${labels} | jq --raw-output .release_tag)
-        build_number=$(echo -n ${labels} | jq --raw-output .build_number)
-        build_context=$(echo -n ${labels} | jq --raw-output .build_context)
-        dockerfile=$(echo -n ${labels} | jq --raw-output .dockerfile)
-        source_repo_url=$(echo -n ${labels} | jq --raw-output .source)
+        release_tag=$(echo -n ${labels} | jq --raw-output '."tekton-ci.release_tag')
+        build_number=$(echo -n ${labels} | jq --raw-output '."tekton-ci.build_number')
+        build_context=$(echo -n ${labels} | jq --raw-output '."tekton-ci.build_context"')
+        dockerfile=$(echo -n ${labels} | jq --raw-output '."tekton-ci.dockerfile"')
+        source_repo_url=$(echo -n ${labels} | jq --raw-output '."tekton-ci.source"')
 
-        image_repo=$(echo -n ${labels} | jq --raw-output .image_repo)
-        image_tag=$(echo -n ${labels} | jq --raw-output .image_tag)
+        image_repo=$(echo -n ${labels} | jq --raw-output '."tekton-ci.image_repo"')
+        image_tag=$(echo -n ${labels} | jq --raw-output '."tekton-ci.image_tag"')
 
-        base_image_repo=$(echo -n ${labels} | jq --raw-output .base_image_repo)
-        base_image_tag=$(echo -n ${labels} | jq --raw-output .base_image_tag)
-        base_image_digest=$(echo -n ${labels} | jq --raw-output .base_image_digest)
+        base_image_repo=$(echo -n ${labels} | jq --raw-output '."tekton-ci.base_image_repo"')
+        base_image_tag=$(echo -n ${labels} | jq --raw-output '."tekton-ci.base_image_tag"')
+        base_image_digest=$(echo -n ${labels} | jq --raw-output '."tekton-ci.base_image_digest"')
 
         latest_base_image_repo=$(cat $(workspaces.base-images.path)/latest.json | jq --raw-output ".${base_image_repo}.repo")
         latest_base_image_tag=$(cat $(workspaces.base-images.path)/latest.json | jq --raw-output ".${base_image_repo}.tag")
