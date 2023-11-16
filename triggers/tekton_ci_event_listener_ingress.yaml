@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tekton-ci-ingress
+  namespace: tekton-ci
+  annotations:
+    cert-manager.io/cluster-issuer: self-signed
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: tekton-ci
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: el-tekton-ci-eventlistener
+                port:
+                  number: 8080
+    - host: tekton-ci.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: el-tekton-ci-eventlistener
+                port:
+                  number: 8080
+  tls:
+    - secretName: https-cert
+      hosts:
+        - tekton-ci
+        - tekton-ci.local
