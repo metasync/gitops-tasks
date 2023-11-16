@@ -46,7 +46,12 @@ spec:
         then
           echo "Namespace ${TARGET_NAMESPACE} has been created already."
         else
-          ${KUBECTL_CMD} create namespace ${TARGET_NAMESPACE}
+          if [ "${KUBE_PLATFORM}" = "openshift" ]
+          then
+            ${KUBECTL_CMD} new-project ${TARGET_NAMESPACE}
+          else
+            ${KUBECTL_CMD} create namespace ${TARGET_NAMESPACE}
+          fi
           if [ $? -eq 0 ]
           then
             echo "Namespace ${TARGET_NAMESPACE} is created successfully."

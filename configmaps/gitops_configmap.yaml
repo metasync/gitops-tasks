@@ -37,3 +37,6 @@ data:
   TEKTON_CI_SERVER: "el-tekton-ci-eventlistener:8080"
 
   KUBECTL_CMD: kubectl
+  KUBE_PLATFORM: kind
+  # KUBECTL_CMD: oc
+  # KUBE_PLATFORM: openshift
