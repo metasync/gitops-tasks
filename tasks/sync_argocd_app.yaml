@@ -61,9 +61,9 @@ spec:
           argocd login ${ARGOCD_SERVER} --auth-token="${ARGOCD_AUTH_TOKEN}" ${ARGOCD_INSECURE_OPTS}
         fi
         if [ $? -eq 0 ]; then
-          echo "Logged in Argo CD successfully."
+          echo "Logged in ArgoCD server ${ARGOCD_SERVER} successfully."
         else
-          echo "Failed to log in Argo CD."
+          echo "Failed to log in ArgoCD server ${ARGOCD_SERVER}."
         fi
 
         ARGOCD_APP_NAME=$(params.env)-$(params.project)-$(params.app)
