@@ -8,13 +8,13 @@ data:
     {
       "alpine": {
         "major": "3.18",
-        "latest": "3.18.2",
+        "latest": "3.18.4",
         "registry": "docker.io",
         "repo": "alpine",
-        "tag": "3.18.2",
+        "tag": "3.18.4",
         "os": "linux",
         "arch": "amd64",
-        "digest": "sha256:25fad2a32ad1f6f510e528448ae1ec69a28ef81916a004d3629874104f8a7f70"
+        "digest": "0"
       },
       "ruby": {
         "major": "3.2",
@@ -26,11 +26,11 @@ data:
         "platform_tag": "alpine3.18",
         "os": "linux",
         "arch": "amd64",
-        "digest": "sha256:911e18cd14b0a90cfe361627c72776e00b183e09baa4e843bb07951badb743c5"
+        "digest": "0"
       },
       "azure-cli": {
-        "major": "2.49",
-        "latest": "2.49.0",
+        "major": "2.53",
+        "latest": "2.53.1",
         "registry": "docker.io",
         "repo": "mcr.microsoft.com/azure-cli",
         "tag": "2.49.0",
@@ -39,4 +39,3 @@ data:
         "digest": "0"
       }
     }
-  
