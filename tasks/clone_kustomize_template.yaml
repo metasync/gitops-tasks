@@ -8,6 +8,9 @@ spec:
     - name: source
       description: A workspace that contains gitops deployment
   params:
+    - name: kustomize_template
+      description: Kustomize template name
+      type: string
     - name: image
       description: Git CLI image to run the task
       type: string
@@ -23,6 +26,8 @@ spec:
       - secretRef:
           name: azure-pat-credentials
     env:
+      - name: KUSTOMIZE_TEMPLATES_NAME
+        value: kustomize_templates.$(params.kustomize_templates_name)
       - name: VERBOSE
         value: $(params.verbose)
   steps:
@@ -37,7 +42,7 @@ spec:
 
         KUSTOMIZE_TEMPLATES_REPO=https://${AZURE_DEVOPS_HOST}/${AZURE_DEVOPS_COLLECTION}/${KUSTOMIZE_TEMPLATES_PROJECT}/_git/${KUSTOMIZE_TEMPLATES_NAME}
 
-        git clone ${KUSTOMIZE_TEMPLATES_REPO} $(workspaces.source.path)/${KUSTOMIZE_TEMPLATES_NAME}
+        git clone ${KUSTOMIZE_TEMPLATES_REPO} $(workspaces.source.path)/kustomize_templates
         if [ $? -eq 0 ]
         then
           echo "Kustomize templates is cloned from ${KUSTOMIZE_TEMPLATES_REPO}."

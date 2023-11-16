@@ -32,4 +32,3 @@ data:
 
   # Kustomize templates config
   KUSTOMIZE_TEMPLATES_PROJECT: devops
-  KUSTOMIZE_TEMPLATES_NAME: kustomize_templates.k8s

@@ -12,6 +12,8 @@ spec:
       type: string
     - name: env
       type: string
+    - name: kustomize_template
+      type: string
   workspaces:
     - name: shared-data
     # - name: azure-ssh-credentials
@@ -49,6 +51,9 @@ spec:
         - init-gitops-workspace
       taskRef:
         name: clone-kustomize-template
+      params:
+        - name: kustomize_template
+          value: $(params.kustomize_template)
       workspaces:
         - name: source
           workspace: shared-data

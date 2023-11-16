@@ -52,7 +52,7 @@ spec:
         cd $(workspaces.source.path)
 
         # Build deployments for given environments
-        build_script=$(workspaces.source.path)/${KUSTOMIZE_TEMPLATES_NAME}/bin/build.sh
+        build_script=$(workspaces.source.path)/kustomize_templates/bin/build.sh
         chmod u+x,g+x ${build_script}
         ${build_script} $(params.project):$(params.app) $(params.env)
 

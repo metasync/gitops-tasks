@@ -11,6 +11,8 @@ spec:
       description: GitOps application
     - name: env
       description: GitOps environment (dev, qa, prd, etc)
+    - name: kustomize_template
+      description: Kustomize template name
   resourcetemplates:
     - apiVersion: tekton.dev/v1beta1
       kind: PipelineRun
@@ -40,3 +42,5 @@ spec:
             value: $(tt.params.app)
           - name: env
             value: $(tt.params.env)
+          - name: kustomize_template
+            value: $(tt.params.kustomize_template)
