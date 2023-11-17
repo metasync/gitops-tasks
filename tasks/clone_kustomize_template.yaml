@@ -27,7 +27,7 @@ spec:
           name: azure-pat-credentials
     env:
       - name: KUSTOMIZE_TEMPLATES_NAME
-        value: kustomize_templates.$(params.kustomize_templates_name)
+        value: kustomize_templates.$(params.kustomize_template)
       - name: VERBOSE
         value: $(params.verbose)
   steps:
