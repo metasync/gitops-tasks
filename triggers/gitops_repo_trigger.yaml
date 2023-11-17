@@ -17,5 +17,7 @@ spec:
       value: $(body.app)
     - name: env
       value: $(body.env)
+    - name: kustomize_template
+      value: $(body.kustomize_template)
   template:
     ref: gitops-repo-trigger-template
