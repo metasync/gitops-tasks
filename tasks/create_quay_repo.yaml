@@ -78,7 +78,7 @@ spec:
         then
           echo "Quay repository '$(params.org)/${repo}' has been created already."
         else
-          echo "Failed to check quay repository '$(params.org)/${repo}'."
+          echo "Failed to check Quay repository '$(params.org)/${repo}'."
           exit 1
         fi
     - name: grant-robot-permissions
