@@ -14,6 +14,24 @@ spec:
     - name: visibility
       description: Visibility which the repository will start with
       default: private
+    - name: enable_mirror
+      description: Flag to enable external Quay registry mirroring
+      default: "false"
+    - name: mirror_host
+      description: External Quay registry host to mirror from
+      default: ""
+    - name: mirror_org
+      description: External Quay registry organization to mirror from
+      default: ""
+    - name: mirror_repo
+      description: External Quay registry repository to mirror from
+      default: ""
+    - name: mirror_tag_pattern
+      description: Tag pattern for mirroring
+      default: ""
+    - name: mirror_sync_interval
+      description: Sync interval for mirroring in seconds
+      default: ""
   resourcetemplates:
     - apiVersion: tekton.dev/v1beta1
       kind: PipelineRun
@@ -33,3 +51,15 @@ spec:
             value: $(tt.params.org)
           - name: visibility
             value: $(tt.params.visibility)
+          - name: enable_mirror
+            value: $(tt.params.enable_mirror)
+          - name: mirror_host
+            value: $(tt.params.mirror_host)
+          - name: mirror_org
+            value: $(tt.params.mirror_org)
+          - name: mirror_repo
+            value: $(tt.params.mirror_repo)
+          - name: mirror_tag_pattern
+            value: $(tt.params.mirror_tag_pattern)
+          - name: mirror_sync_interval
+            value: $(tt.params.mirror_sync_interval)

@@ -11,6 +11,14 @@ data:
   QUAY_ROBOT_ACCOUNT: devops_bot
   QUAY_ROBOT_ROLE: write
 
+  # Quay mirror config
+  QUAY_MIRROR_HOST: quay.io
+  QUAY_MIRROR_ROBOT_ACCOUNT: devops_bot
+  QUAY_MIRROR_TAG_PATTERN: "*.*.*-rel"
+  QUAY_MIRROR_SYNC_INTERVAL: "86400"
+  QUAY_MIRROR_VERIFY_TLS: "false"
+  QUAY_MIRROR_UNSIGNED_IMAGES: "false"
+
   # Kubernetes config
   SECRET_SOURCE_NAMESPACE: default
   SECRETS_TO_COPY: "secret1 secret2 secret3"

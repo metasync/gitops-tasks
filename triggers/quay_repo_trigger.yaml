@@ -19,5 +19,17 @@ spec:
       value: $(body.org)
     - name: visibility
       value: $(body.visibility)
+    - name: enable_mirror
+      value: $(body.enable_mirror)
+    - name: mirror_host
+      value: $(body.mirror_host)
+    - name: mirror_org
+      value: $(body.mirror_org)
+    - name: mirror_repo
+      value: $(body.mirror_repo)
+    - name: mirror_tag_pattern
+      value: $(body.mirror_tag_pattern)
+    - name: mirror_sync_interval
+      value: $(body.mirror_sync_interval)
   template:
     ref: quay-repo-trigger-template

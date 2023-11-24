@@ -1,0 +1,128 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: mirror-quay-repo
+  namespace: tekton-ci
+spec:
+  params:
+    - name: project
+      description: Quay project for GitOps
+      type: string
+    - name: app
+      description: Quay application for GitOps
+      type: string
+    - name: org
+      description: Quay organization for GitOps
+      type: string
+    - name: mirror_host
+      description: External Quay registry host to mirror from
+      type: string
+    - name: mirror_org
+      description: External Quay registry organization to mirror from
+      type: string
+    - name: mirror_repo
+      description: External Quay registry repository to mirror from
+      type: string
+    - name: mirror_tag_pattern
+      description: Tag pattern for mirroring
+      type: string
+    - name: mirror_sync_interval
+      description: Sync interval for mirroring
+      type: string
+    - name: image
+      description: GitOps CLI image to run the task
+      type: string
+      default: quay.io/metasync/gitops-cli:0.1.3-rel.0
+    - name: verbose
+      description: Log the commands that are executed
+      type: string
+      default: "false"
+  stepTemplate:
+    envFrom:
+      - configMapRef:
+          name: gitops-configmap
+      - secretRef:
+          name: quay-token-credentials
+    env:
+      - name: MIRROR_HOST
+        value: $(params.mirror_host)
+      - name: MIRROR_ORG
+        value: $(params.mirror_org)
+      - name: MIRROR_REPO
+        value: $(params.mirror_repo)
+      - name: MIRROR_TAG_PATTERN
+        value: $(params.mirror_tag_pattern)
+      - name: MIRROR_SYNC_INTERVAL
+        value: $(params.mirror_sync_interval)
+      - name: VERBOSE
+        value: $(params.verbose)
+  steps:
+    - name: create-quay-repo-mirror
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        if [ "${QUAY_SSL_VERIFY}" = "false" ] ; then
+          QUAY_CURL_OPTS="-k"
+        else
+          QUAY_CURL_OPTS=""
+        fi
+
+        repo=$(params.project)_$(params.app)
+
+        mirror_host=${MIRROR_HOST:-${QUAY_MIRROR_HOST}}
+        mirror_org=${MIRROR_ORG:-$(params.org)}
+        mirror_repo=${MIRROR_REPO:-${repo}}
+        mirror_tag_pattern=${MIRROR_TAG_PATTERN:-${QUAY_MIRROR_TAG_PATTERN}}
+        mirror_sync_interval=${MIRROR_SYNC_INTERVAL:-${QUAY_MIRROR_SYNC_INTERVAL}}
+        mirror_sync_start_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+        echo "$(cat << EOM
+        {
+          "is_enabled": true, 
+          "external_reference": "${mirror_host}/${mirror_org}/${mirror_repo}", 
+          "external_registry_username": "${mirror_org}+${QUAY_MIRROR_ROBOT_ACCOUNT}", 
+          "external_registry_password": "${QUAY_MIRROR_ROBOT_ACCESS_TOKEN}", 
+          "sync_interval": ${mirror_sync_interval}, 
+          "sync_start_date": "${mirror_sync_start_date}", 
+          "robot_username": "$(params.org)+${QUAY_ROBOT_ACCOUNT}", 
+          "external_registry_config": { 
+              "verify_tls": ${QUAY_MIRROR_VERIFY_TLS}, 
+              "unsigned_images": ${QUAY_MIRROR_UNSIGNED_IMAGES}, 
+              "proxy": { 
+                  "http_proxy": null, 
+                  "https_proxy": null, 
+                  "no_proxy": null 
+              } 
+          }, 
+          "root_rule": { 
+              "rule_kind": "tag_glob_csv", 
+              "rule_value": [ 
+                  "${mirror_tag_pattern}" 
+              ] 
+          } 
+        }
+        EOM
+        )" | jq > mirror-request.json
+
+        http_code=$(curl -s ${QUAY_CURL_OPTS} \
+            -H "Authorization: Bearer ${QUAY_ACCESS_TOKEN}" \
+            -H 'Content-Type: application/json' \
+            -d @mirror-request.json \
+            -o /dev/null -w '%{http_code}\n' \
+            -X POST https://${QUAY_HOST}/api/v1/repository/$(params.org)/${repo}/mirror)
+
+        if [ "${http_code}" = "201" ]
+        then
+          echo "Quay repository '$(params.org)/${repo}' is configured as a mirror repository successfully."
+        elif [ "${http_code}" = "409" ]
+        then
+          echo "Quay repository '$(params.org)/${repo}' has been configured as a mirror repository already."
+        else
+          echo "Failed to configure mirroring for Quay repository '$(params.org)/${repo}' (${http_code})"
+          exit 1
+        fi

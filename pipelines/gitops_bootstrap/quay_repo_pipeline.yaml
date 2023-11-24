@@ -14,6 +14,19 @@ spec:
       type: string
     - name: visibility
       type: string
+    - name: enable_mirror
+      type: string
+      default: "false"
+    - name: mirror_host
+      type: string
+    - name: mirror_org
+      type: string
+    - name: mirror_repo
+      type: string
+    - name: mirror_tag_pattern
+      type: string
+    - name: mirror_sync_interval
+      type: string
   tasks:
     - name: create-quay-repo
       taskRef: 
@@ -27,3 +40,29 @@ spec:
           value: $(params.org)
         - name: visibility
           value: $(params.visibility)
+    - name: mirror-quay-repo
+      taskRef: 
+        name: mirror-quay-repo
+      runAfter:
+        - create-quay-repo
+      when:
+        - input: "$(params.enable_mirror)"
+          operator: in
+          values: ["true"]
+      params:
+        - name: project
+          value: $(params.project)
+        - name: app
+          value: $(params.app)
+        - name: org
+          value: $(params.org)
+        - name: mirror_host
+          value: $(params.mirror_host)
+        - name: mirror_org
+          value: $(params.mirror_org)
+        - name: mirror_repo
+          value: $(params.mirror_repo)
+        - name: mirror_tag_pattern
+          value: $(params.mirror_tag_pattern)
+        - name: mirror_sync_interval
+          value: $(params.mirror_sync_interval)

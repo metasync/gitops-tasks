@@ -9,6 +9,7 @@ kubectl apply -f clone_gitops_deployment.yaml
 kubectl apply -f update_gitops_deployment.yaml
 
 kubectl apply -f create_quay_repo.yaml
+kubectl apply -f mirror_quay_repo.yaml
 
 kubectl apply -f create_kube_app.yaml
 
