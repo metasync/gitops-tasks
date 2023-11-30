@@ -1,0 +1,75 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: gitops-project-pipeline
+  namespace: tekton-ci
+spec:
+  description: This pipeline to bootstrap GitOps project
+    * GitOps repository
+    * Kubernetes namespaces/projects
+    * Quay image repositories
+    * ArgoCD applications
+  params:
+    - name: project
+      type: string
+    - name: apps
+      type: string
+    - name: envs
+      type: string
+    - name: kustomize_template
+      type: string
+    - name: orgs
+      type: string
+    - name: visibility
+      type: string
+    - name: enable_mirror
+      type: string
+      default: "false"
+  tasks:
+    - name: bootstrap-gitops-repos
+      taskRef: 
+        name: bootstrap-gitops-repos
+      params:
+        - name: project
+          value: $(params.project)
+        - name: apps
+          value: $(params.apps)
+        - name: envs
+          value: $(params.envs)
+        - name: kustomize_template
+          value: $(params.kustomize_template)
+    - name: bootstrap-kube-apps
+      taskRef: 
+        name: bootstrap-kube-apps
+      params:
+        - name: project
+          value: $(params.project)
+        - name: envs
+          value: $(params.envs)
+    - name: bootstrap-quay-repos
+      taskRef: 
+        name: bootstrap-quay-repos
+      params:
+        - name: project
+          value: $(params.project)
+        - name: apps
+          value: $(params.apps)
+        - name: orgs
+          value: $(params.orgs)
+        - name: visibility
+          value: $(params.visibility)
+        - name: enable_mirror
+          value: $(params.enable_mirror)
+    - name: bootstrap-argocd-apps
+      runAfter: 
+        - bootstrap-gitops-repos
+        - bootstrap-kube-apps
+      taskRef: 
+        name: bootstrap-argocd-apps
+      params:
+        - name: project
+          value: $(params.project)
+        - name: apps
+          value: $(params.apps)
+        - name: envs
+          value: $(params.envs)

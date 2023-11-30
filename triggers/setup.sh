@@ -1,5 +1,8 @@
 #!/bin/bash
 
+kubectl apply -f gitops_project_trigger_template.yaml
+kubectl apply -f gitops_project_trigger.yaml
+
 kubectl apply -f gitops_repo_trigger_template.yaml
 kubectl apply -f gitops_repo_trigger.yaml
 

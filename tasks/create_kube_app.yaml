@@ -6,10 +6,7 @@ metadata:
 spec:
   params:
     - name: project
-      description: Quay project for GitOps
-      type: string
-    - name: app
-      description: Quay application for GitOps
+      description: GitOps project
       type: string
     - name: env
       description: GitOps environment (dev, qa, prd, etc.)

@@ -13,8 +13,6 @@ spec:
   bindings:
     - name: project
       value: $(body.project)
-    - name: app
-      value: $(body.app)
     - name: env
       value: $(body.env)
   template:

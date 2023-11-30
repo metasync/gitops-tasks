@@ -24,7 +24,5 @@ spec:
         params:
           - name: project
             value: $(tt.params.project)
-          - name: app
-            value: $(tt.params.app)
           - name: env
             value: $(tt.params.env)

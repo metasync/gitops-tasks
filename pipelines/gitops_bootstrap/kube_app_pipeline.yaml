@@ -8,8 +8,6 @@ spec:
   params:
     - name: project
       type: string
-    - name: app
-      type: string
     - name: env
       type: string
   tasks:
@@ -19,7 +17,5 @@ spec:
       params:
         - name: project
           value: $(params.project)
-        - name: app
-          value: $(params.app)
         - name: env
           value: $(params.env)

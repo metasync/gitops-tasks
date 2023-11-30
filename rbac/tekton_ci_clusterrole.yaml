@@ -3,9 +3,15 @@ kind: ClusterRole
 metadata:
   name: tekton-ci-clusterrole
 rules:
+  # The following permissions are needed for K8S namespace creation
   - apiGroups: [""] # "" indicates the core API group
     resources: ["namespaces"]
     verbs: ["list", "create"]
+  # The following permissions are needed for OpenShift project creation
+  # - apiGroups: ["project.openshift.io"]
+  #   resources: ["projectrequests"]
+  #   verbs: ["create"]
   - apiGroups: [""] 
     resources: ["secrets"]
     verbs: ["list", "get", "create", "patch"]
+  

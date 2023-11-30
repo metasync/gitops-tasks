@@ -1,0 +1,96 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: bootstrap-gitops-repos
+  namespace: tekton-ci
+spec:
+  params:
+    - name: project
+      description: GitOps project
+      type: string
+    - name: apps
+      description: GitOps applications
+      type: string
+    - name: envs
+      description: GitOps environments (dev, qa, prd, etc.)
+      type: string
+    - name: kustomize_template
+      description: Kustomize template name
+      type: string
+    - name: image
+      description: GitOps CLI image to run the task
+      type: string
+      default: quay.io/metasync/gitops-cli:0.1.3-rel.0
+    - name: verbose
+      description: Log the commands that are executed
+      type: string
+      default: "false"
+  stepTemplate:
+    envFrom:
+      - configMapRef:
+          name: gitops-configmap
+    env:
+      - name: VERBOSE
+        value: $(params.verbose)
+  steps:
+    - name: create-gitops-repos
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        for app in $(echo $(params.apps) | tr "," "\n")
+        do
+          http_code=$(curl -s \
+            -H "Content-Type: application/json" \
+            -H "X-TektonCI-Event: gitops-repo" \
+            -o result.json -w '%{http_code}\n' \
+            -d "{\"project\": \"$(params.project)\", \"app\": \"${app}\", \"env\": \"$(params.envs)\", \"kustomize_template\": \"$(params.kustomize_template)\" }" \
+            -X POST ${TEKTON_CI_SERVER})
+
+          if [ "${http_code}" = "202" ]
+          then
+            echo "Gitops repo for '$(params.project)/${app}' is being created."
+            event_id=$(cat result.json | jq -r .eventID)
+            pipelines="${pipelines:+${pipelines} }$(params.project)/${app}|${event_id}"
+          else
+            echo "Failed to create GitOps repo for '$(params.project)/${app}': "
+            cat result.json | jq
+            exit 1
+          fi
+        done
+        
+        while true
+        do
+          sleep 5
+          completed=true
+          for pipeline in ${pipelines}
+          do
+            app_name=${pipeline%%|*}
+            event_id=${pipeline##*|}
+            status=$(kubectl -n tekton-ci get pr -l \
+              triggers.tekton.dev/triggers-eventid=${event_id} -o json | \
+              jq -r '.items[]|select(.kind == "PipelineRun").status.conditions[]|select(.type == "Succeeded").status')
+            if [ "$status" == "Unknown" ]
+            then
+              next_pipelines="${next_pipelines:+${next_pipelines} }${app_name}|${event_id}"
+              completed=false
+            else
+              if [ "${status}" == "True" ]
+              then
+                echo "Gitops repo for '${app_name}' is created successfully."
+              else
+                echo "Failed to create GitOps repo for '${app_name}'."
+              fi
+            fi
+          done
+          pipelines="${next_pipelines}"
+          next_pipelines=""
+          if [ "${completed}" = true ]
+          then
+            break
+          fi
+        done

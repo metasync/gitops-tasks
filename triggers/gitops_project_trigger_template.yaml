@@ -1,0 +1,48 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: gitops-project-trigger-template
+  namespace: tekton-ci
+spec:
+  params:
+    - name: project
+      description: GitOps project
+    - name: apps
+      description: GitOps applications
+    - name: envs
+      description: GitOps environments (dev, qa, prd, etc)
+    - name: kustomize_template
+      description: Kustomize template name
+    - name: orgs
+      description: Quay organizations for GitOps
+    - name: visibility
+      description: Quay repository visibility (private or public)
+      default: private
+    - name: enable_mirror
+      description: Flag to enable external Quay repository mirroring
+      default: "false"
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: gitops-project-pipelinerun-
+        namespace: tekton-ci
+      spec:
+        serviceAccountName: tekton-ci-sa
+        pipelineRef:
+          name: gitops-project-pipeline
+        params:
+          - name: project
+            value: $(tt.params.project)
+          - name: apps
+            value: $(tt.params.apps)
+          - name: envs
+            value: $(tt.params.envs)
+          - name: kustomize_template
+            value: $(tt.params.kustomize_template)
+          - name: orgs
+            value: $(tt.params.orgs)
+          - name: visibility
+            value: $(tt.params.visibility)
+          - name: enable_mirror
+            value: $(tt.params.enable_mirror)

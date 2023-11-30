@@ -23,8 +23,6 @@ spec:
     envFrom:
       - configMapRef:
           name: gitops-configmap
-      - secretRef:
-          name: quay-token-credentials
     env:
       - name: VERBOSE
         value: $(params.verbose)

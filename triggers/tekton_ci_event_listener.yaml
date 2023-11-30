@@ -6,9 +6,7 @@ metadata:
 spec:
   serviceAccountName: tekton-ci-sa
   triggers:
-    # - triggerRef: tekton-ci-dev-trigger
-    # - triggerRef: tekton-ci-qa-trigger
-    # - triggerRef: tekton-ci-prd-trigger
+    - triggerRef: gitops-project-trigger
     - triggerRef: gitops-repo-trigger
     - triggerRef: quay-repo-trigger
     - triggerRef: kube-app-trigger

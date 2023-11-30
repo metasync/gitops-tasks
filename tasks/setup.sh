@@ -1,5 +1,10 @@
 #!/bin/bash
 
+kubectl apply -f bootstrap_gitops_repos.yaml
+kubectl apply -f bootstrap_kube_apps.yaml
+kubectl apply -f bootstrap_quay_repos.yaml
+kubectl apply -f bootstrap_argocd_apps.yaml
+
 kubectl apply -f create_azure_repo.yaml
 kubectl apply -f add_azure_repo_policies.yaml
 kubectl apply -f init_gitops_workspace.yaml

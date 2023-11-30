@@ -56,10 +56,10 @@ spec:
 
         if [ $? -eq 0 ] 
         then
-          echo "Argo CD app for $(params.project)/$(params.app) is created successfully." 
+          echo "Argo CD app for $(params.env)-$(params.project)-$(params.app) is created successfully." 
           echo -n "true" > $(results.created.path)
         else 
-          echo "Failed to create Argo CD app for $(params.project)/$(params.app)." 
+          echo "Failed to create Argo CD app for $(params.env)-$(params.project)-$(params.app)." 
           echo -n "false" > $(results.created.path)
           exit 1
         fi

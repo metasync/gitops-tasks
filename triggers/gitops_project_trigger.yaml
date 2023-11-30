@@ -1,0 +1,29 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: gitops-project-trigger
+  namespace: tekton-ci
+spec:
+  interceptors:
+    - ref: 
+        name: "cel"
+      params:
+        - name: "filter"
+          value: header.match('X-TektonCI-Event', 'gitops-project')
+  bindings:
+    - name: project
+      value: $(body.project)
+    - name: apps
+      value: $(body.apps)
+    - name: envs
+      value: $(body.envs)
+    - name: kustomize_template
+      value: $(body.kustomize_template)
+    - name: orgs
+      value: $(body.quay_orgs)
+    - name: visibility
+      value: $(body.quay_visibility)
+    - name: enable_mirror
+      value: $(body.quay_enable_mirror)
+  template:
+    ref: gitops-project-trigger-template

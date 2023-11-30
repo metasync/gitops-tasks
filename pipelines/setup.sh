@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # GitOps bootstrap
+kubectl apply -f gitops_bootstrap/gitops_project_pipeline.yaml
 kubectl apply -f gitops_bootstrap/gitops_repo_pipeline.yaml
 kubectl apply -f gitops_bootstrap/quay_repo_pipeline.yaml
 kubectl apply -f gitops_bootstrap/kube_app_pipeline.yaml
