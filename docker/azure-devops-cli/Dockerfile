@@ -46,8 +46,9 @@ LABEL tekton-ci.project=${project} \
     tekton-ci.azure_cli_version=${version}
 
 RUN az extension add --name azure-devops \
-    && apk -U upgrade \
-    && apk --no-cache add jq \
+    && tdnf -y update \
+    && tdnf install -y jq \
+    && tdnf clean all \
     \
     && chown -R 1001:0 ${GITOPS_HOME} \
     && chmod -R g=u ${GITOPS_HOME}
