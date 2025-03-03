@@ -30,6 +30,16 @@ spec:
                 name: el-tekton-ci-eventlistener
                 port:
                   number: 8080
+    - host: tekton-ci.k8s.orb.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: el-tekton-ci-eventlistener
+                port:
+                  number: 8080
   tls:
     - secretName: https-cert
       hosts:
