@@ -27,3 +27,5 @@ kubectl apply -f trigger_quay_image_rebuild.yaml
 kubectl apply -f fetch_quay_image_labels.yaml
 kubectl apply -f init_github_workspace.yaml
 kubectl apply -f clone_quay_image_source.yaml
+
+kubectl apply -f kubectl_task.yaml

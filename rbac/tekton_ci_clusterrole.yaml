@@ -7,6 +7,10 @@ rules:
   - apiGroups: [""] # "" indicates the core API group
     resources: ["namespaces"]
     verbs: ["list", "create"]
+  # The following permissions are needed for K8S deployment rollout restart
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "patch"]
   # The following permissions are needed for OpenShift project creation
   # - apiGroups: ["project.openshift.io"]
   #   resources: ["projectrequests"]

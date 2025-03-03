@@ -1,0 +1,36 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: kubectl-task
+  namespace: tekton-ci
+spec:
+  params:
+    - name: command
+      description: The kubectl command to run
+      type: string
+    - name: image
+      description: Image to run the task
+      type: string
+      default: quay.io/metasync/gitops-cli:0.1.5-rel.0
+    - name: verbose
+      description: Log the commands that are executed
+      type: string
+      default: "false"
+  stepTemplate:
+    envFrom:
+      - configMapRef:
+          name: gitops-configmap
+    env:
+      - name: VERBOSE
+        value: $(params.verbose)
+  steps:
+    - name: run-kubectl-command
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        ${KUBECTL_CMD} $(params.command)

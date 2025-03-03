@@ -13,3 +13,4 @@ spec:
     - triggerRef: argocd-app-trigger
     - triggerRef: quay-image-check-trigger
     - triggerRef: quay-image-rebuild-trigger
+    - triggerRef: deployment-restart-trigger

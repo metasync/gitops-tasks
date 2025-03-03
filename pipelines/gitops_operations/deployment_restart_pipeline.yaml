@@ -1,0 +1,21 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: deployment-restart-pipeline
+  namespace: tekton-ci
+spec:
+  description: |
+    This pipeline restarts a Deployment in a given namespace.
+  params:
+    - name: deployment
+      type: string
+      description: Name of the Deployment to restart
+    - name: namespace
+      description: Namespace of the Deployment
+  tasks:
+    - name: restart-deployment
+      taskRef:
+        name: kubectl-task
+      params:
+        - name: command
+          value: "rollout restart deployment/$(params.deployment) -n $(params.namespace)"
