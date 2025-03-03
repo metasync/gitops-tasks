@@ -1,7 +1,7 @@
 ARG base_image_repo=alpine
 ARG base_image_tag
 ARG base_image_digest
-FROM ${base_image_repo}:${base_image_tag}@${base_image_digest}
+FROM ${base_image_repo}:${base_image_tag}
 
 ARG project
 ARG app
@@ -20,11 +20,11 @@ ARG base_image_digest
 
 ARG TARGET_OS=linux
 ARG TARGET_ARCH=amd64
-ARG KUBECTL_VERSION=1.31.0
-ARG KUSTOMIZE_VERSION=5.5.0
-ARG KUBELINTER_VERSION=0.7.1
+ARG KUBECTL_VERSION=1.32.2
+ARG KUSTOMIZE_VERSION=5.6.0
+ARG KUBELINTER_VERSION=0.7.2
 ARG OPENSHIFT_CLIENT_VERSION=4.16.9
-ARG ARGOCD_CLI_VERSION=2.13.1
+ARG ARGOCD_CLI_VERSION=2.14.3
 
 ENV GITOPS_HOME=/home/gitops
 ENV HOME=${GITOPS_HOME}

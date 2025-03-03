@@ -24,7 +24,7 @@ spec:
     - name: image
       description: GitOps CLI image to run the task
       type: string
-      default: quay.io/metasync/gitops-cli:0.1.4-rel.0
+      default: quay.io/metasync/gitops-cli:0.1.5-rel.0
     - name: verbose
       description: Log the commands that are executed
       type: string
@@ -68,7 +68,7 @@ spec:
 
         ARGOCD_APP_NAME=$(params.env)-$(params.project)-$(params.app)
 
-        argocd app sync ${ARGOCD_APP_NAME} --revision $(params.revision) --grpc-web ${ARGOCD_INSECURE_OPTS} $(params.flags)
+        argocd app sync ${ARGOCD_APP_NAME} --revision $(params.revision) --grpc-web ${ARGOCD_INSECURE_OPTS} $(params.flags) --timeout 30
         if [ $? -eq 0 ]
         then
           echo "${ARGOCD_APP_NAME} is synced successfully."
