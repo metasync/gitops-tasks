@@ -17,6 +17,7 @@ build:
 		--build-arg git_version=$(GIT_RELEASE) \
 		--build-arg release_tag=$(RELEASE_TAG) \
 		--build-arg build_number=$(BUILD_NUMBER) \
+		--platform linux/amd64 \
 		&& ${CONTAINER_CLI} image tag $(IMAGE_NAME) $(IMAGE_REGISTRY_NAME)
 
 push:
