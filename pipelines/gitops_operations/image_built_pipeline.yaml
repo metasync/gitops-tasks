@@ -1,0 +1,40 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: image-built-pipeline
+  namespace: tekton-ci
+spec:
+  description: |
+    This pipeline handles image built event
+  params:
+    - name: argocd-app
+      type: string
+    - name: argocd-namespace
+      type: string
+  tasks:
+    - name: get-deployment
+      taskRef: 
+        name: get-deployment-by-argocd-app
+      params:
+        - name: argocd-app
+          value: $(params.argocd-app)
+        - name: argocd-namespace
+          value: $(params.argocd-namespace)
+    # - name: get-latest-image
+    #   taskRef: 
+    #     name: get-latest-image-by-argocd-app
+    #   params:
+    #     - name: argocd-app
+    #       value: $(params.argocd-app)
+    #     - name: argocd-namespace
+    #       value: $(params.argocd-namespace)
+    - name: restart-deployment
+      runAfter:
+        - get-deployment
+      taskRef:
+        name: restart-deployment
+      params:
+        - name: name
+          value: $(tasks.get-deployment.results.deployment-name)
+        - name: namespace
+          value: $(tasks.get-deployment.results.deployment-namespace)

@@ -1,0 +1,56 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: get-deployment-by-argocd-app
+  namespace: tekton-ci
+spec:
+  params:
+    - name: argocd-app
+      description: The ArgoCD application name
+      type: string
+    - name: argocd-namespace
+      description: The ArgoCD namespace
+      type: string
+    - name: image
+      description: Image to run the task
+      type: string
+      default: quay.io/metasync/gitops-cli:0.1.5-rel.0
+    - name: verbose
+      description: Log the commands that are executed
+      type: string
+      default: "false"
+  results:
+    - name: deployment-name
+      description: The deployment name
+      type: string
+    - name: deployment-namespace
+      description: The deployment namespace
+      type: string
+  stepTemplate:
+    envFrom:
+      - configMapRef:
+          name: gitops-configmap
+    env:
+      - name: VERBOSE
+        value: $(params.verbose)
+  steps:
+    - name: get-deployment-name
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        ${KUBECTL_CMD} get \
+          applications.argoproj.io/$(params.argocd-app) \
+          -n $(params.argocd-namespace) -o json | \
+          jq -j '.status.resources[] | select(.kind=="Deployment").name' > \
+          $(results.deployment-name.path)
+          
+        ${KUBECTL_CMD} get \
+          applications.argoproj.io/$(params.argocd-app) \
+          -n $(params.argocd-namespace) -o json | \
+          jq -j '.status.resources[] | select(.kind=="Deployment").namespace' > \
+          $(results.deployment-namespace.path)

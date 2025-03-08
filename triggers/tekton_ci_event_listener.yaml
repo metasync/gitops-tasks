@@ -11,6 +11,6 @@ spec:
     - triggerRef: quay-repo-trigger
     - triggerRef: kube-app-trigger
     - triggerRef: argocd-app-trigger
+    - triggerRef: image-built-trigger
     - triggerRef: quay-image-check-trigger
     - triggerRef: quay-image-rebuild-trigger
-    - triggerRef: deployment-restart-trigger

@@ -1,0 +1,39 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: restart-deployment
+  namespace: tekton-ci
+spec:
+  params:
+    - name: name
+      description: The name of the deployment to restart
+      type: string
+    - name: namespace
+      description: The namespace of the deployment to restart
+      type: string
+    - name: image
+      description: Image to run the task
+      type: string
+      default: quay.io/metasync/gitops-cli:0.1.5-rel.0
+    - name: verbose
+      description: Log the commands that are executed
+      type: string
+      default: "false"
+  stepTemplate:
+    envFrom:
+      - configMapRef:
+          name: gitops-configmap
+    env:
+      - name: VERBOSE
+        value: $(params.verbose)
+  steps:
+    - name: get-deployment-name
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        ${KUBECTL_CMD} rollout restart deployment/$(params.name) -n $(params.namespace)

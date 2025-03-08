@@ -1,0 +1,64 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: get-latest-image-by-argocd-app
+  namespace: tekton-ci
+spec:
+  params:
+    - name: argocd-app
+      description: The ArgoCD application name
+      type: string
+    - name: argocd-namespace
+      description: The ArgoCD namespace
+      type: string
+    - name: image
+      description: Image to run the task
+      type: string
+      default: quay.io/metasync/gitops-cli:0.1.5-rel.0
+    - name: verbose
+      description: Log the commands that are executed
+      type: string
+      default: "true"
+  results:
+    - name: image-name
+      description: The image resource name built by kpack
+      type: string
+    - name: image-namespace
+      description: The image resource namespace built by kpack
+      type: string
+    - name: latest-image
+      description: The latest image built by kpack
+      type: string
+  stepTemplate:
+    envFrom:
+      - configMapRef:
+          name: gitops-configmap
+    env:
+      - name: VERBOSE
+        value: $(params.verbose)
+  steps:
+    - name: get-latest-image
+      image: $(params.image)
+      script: |
+        #!/bin/sh
+
+        if [ "${VERBOSE}" = "true" ] ; then
+          set -x
+        fi
+
+        image_name=$(${KUBECTL_CMD} get \
+          applications.argoproj.io/$(params.argocd-app) \
+          -n $(params.argocd-namespace) -o json | \
+          jq -j '.status.resources[] | select(.kind=="Image").name')
+        echo -n ${image_name} > $(results.image-name.path)
+
+        image_namespace=$(${KUBECTL_CMD} get \
+          applications.argoproj.io/$(params.argocd-app) \
+          -n $(params.argocd-namespace) -o json | \
+          jq -j '.status.resources[] | select(.kind=="Image").namespace')
+        echo -n ${image_namespace} > $(results.image-namespace.path)
+
+        ${KUBECTL_CMD} get \
+          images.kpack.io/${image_name} \
+          -n ${image_namespace} -o json | \
+          jq -j .status.latestImage > $(results.latest-image.path)

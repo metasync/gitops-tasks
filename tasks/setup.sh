@@ -28,4 +28,6 @@ kubectl apply -f fetch_quay_image_labels.yaml
 kubectl apply -f init_github_workspace.yaml
 kubectl apply -f clone_quay_image_source.yaml
 
-kubectl apply -f kubectl_task.yaml
+kubectl apply -f get_deployment_by_argocd_app.yaml
+kubectl apply -f get_latest_image_by_argocd_app.yaml
+kubectl apply -f restart_deployment.yaml

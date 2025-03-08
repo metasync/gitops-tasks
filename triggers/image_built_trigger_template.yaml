@@ -1,0 +1,26 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: TriggerTemplate
+metadata:
+  name: image-built-trigger-template
+  namespace: tekton-ci
+spec:
+  params:
+    - name: argocd-app
+      description: Name of the ArgoCD application
+    - name: argocd-namespace
+      description: Namespace of the ArgoCD application
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        generateName: image-built-pipelinerun-
+        namespace: tekton-ci
+      spec:
+        serviceAccountName: tekton-ci-sa
+        pipelineRef:
+          name: image-built-pipeline
+        params:
+          - name: argocd-app
+            value: "$(tt.params.argocd-app)"
+          - name: argocd-namespace
+            value: "$(tt.params.argocd-namespace)"

@@ -1,0 +1,19 @@
+apiVersion: triggers.tekton.dev/v1beta1
+kind: Trigger
+metadata:
+  name: image-built-trigger
+  namespace: tekton-ci
+spec:
+  interceptors:
+    - ref: 
+        name: "cel"
+      params:
+        - name: "filter"
+          value: header.match('X-TektonCI-Event', 'image-built')
+  bindings:
+    - name: argocd-app
+      value: $(body.argocd_app)
+    - name: argocd-namespace
+      value: $(body.argocd_namespace)
+  template:
+    ref: image-built-trigger-template
