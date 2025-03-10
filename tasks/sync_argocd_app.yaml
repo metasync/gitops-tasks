@@ -64,6 +64,7 @@ spec:
           echo "Logged in ArgoCD server ${ARGOCD_SERVER} successfully."
         else
           echo "Failed to log in ArgoCD server ${ARGOCD_SERVER}."
+          exit 1
         fi
 
         ARGOCD_APP_NAME=$(params.env)-$(params.project)-$(params.app)
